@@ -2,8 +2,8 @@
 
 ## The Narrative
 
-2024 : Testing LLM’s with generating Supercollider Code
-Claude 3.5 (June 2024) was the first time code was generated that was successful
+Since the launch of LLM's, I've been testing them by trying to generate [Supercollider](https://supercollider.github.io) Code. Fast forward....
+Claude 3.5 (June 2024) was the first time succesful code was generated. 
 - Began to test the depth of understanding of generating SC code
 - Surprisingly successful at different prompt strategies for different outcomes 
     - Synth construction
