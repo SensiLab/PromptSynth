@@ -12,6 +12,8 @@ Claude 3.5 (June 2024) was the first time code was generated that was successful
         - Descriptive (texture, object, environment) Eg:
 Metal, wood, Melbourne Pedestrian Crossing
 Raindrop, Whip Bird, Forest, Cricket, Cicada, Interactive Wind
+<audio controls src="/shared-assets/audio/t-rex-roar.mp3"></audio>
+
     - Music construction
         - Steve Reich, Brain Eno, Stockhausen, Xenakis
 
