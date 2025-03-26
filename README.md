@@ -1,6 +1,7 @@
 # PromptSynth
 Evolving Supercollider synths using Large Language Models
 
+
 ### Background
 
 - Since the launch of LLM's, I've been testing them by trying to generate [Supercollider](https://supercollider.github.io)(SC) Code. Fast forward....
@@ -36,6 +37,10 @@ Evolving Supercollider synths using Large Language Models
 - 2025 : The need to automate : [Claude’s API](https://docs.anthropic.com/en/release-notes/api). $ign me up!
 
 
+### Present :
+
+- Dependencies : Claude.ai API / Supercollider / Python
+
 - Hacked a very basic work flow : evolve synths.
     - Start with a prototype synth
     - Give a prompt (used for every iteration) 
@@ -51,12 +56,12 @@ Evolving Supercollider synths using Large Language Models
     - Feels like I am growing synths
     - Have not improved or developed the idea further as I am too busy ‘prompting’ new ideas and listening. Is this a good thing?
 
-- What next...
+### Future : 
 
-    - Build more robust ‘play ground’ for testing LLM’s and workflows
-    - Rag (Retrieval-Augmented Generation), MCP (Model Context Protocol) and tooling.
-    - Archive outputs : code and audio
-    - Big dream : local model running on a RPI or Mac 
-    - Mini that generates continuous soundscape with prompting (text for now) that guides the composition.
-    - Looking for collaborators :  ideas, techniques, code
+- Build more robust ‘play ground’ for testing LLM’s and workflows
+- Rag (Retrieval-Augmented Generation), MCP (Model Context Protocol) and tooling.
+- Archive outputs : code and audio
+- Big dream : local model running on a RPI or Mac 
+- Mini that generates continuous soundscape with prompting (text for now) that guides the composition.
+- Looking for collaborators :  ideas, techniques, code
     
