@@ -41,19 +41,27 @@ Evolving Supercollider synths using Large Language Models
 
 - Dependencies : Claude.ai API / Supercollider / Python
 
-- Hacked a very basic work flow : evolve synths.
-    - Start with a prototype synth
-    - Give a prompt (used for every iteration) 
-    - Hit go : (calls to SC to load, interpret and play new Synth Definition)
-    - Each iteration is saved and then loaded into SC, so every iteration is archived.
+- Steps :
+    - Create Virtual Environment
+    - Install Python Requirements
+    - set ```export ANTHROPIC_API_KEY=```
+    - Set a prototype synth ```template_0.sc```
+    - Set prompt (used for every iteration) ```prompt.sc```
+    - Run ```oscCommands.sc``` in SC
+    - Run ```next_sound.py``` in Python
+
+- How it works :
+    - Hacked together as a very basic work flow
+    - Send Claude : ```template_0.sc``` and ```prompt.sc```
+    - Claude returns some code : (and calls SC to load, interpret and play new Synth Definition code)
+    - Each iteration is saved and loaded into SC, so every iteration is archived.
 
 <center><img src="PromptSynth.jpg" width="80%" alt="Description"></center>
-
 
 - Outcome so far : 
     - Very successful in creating a family of sounds that evolve over each iteration
     - Errors propagate but sometimes disappear after several iterations
-    - Feels like I am growing synths
+    - Feels like growing synths
     - Have not improved or developed the idea further as I am too busy ‘prompting’ new ideas and listening. Is this a good thing?
 
 ### Future : 
