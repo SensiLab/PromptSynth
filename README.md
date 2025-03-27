@@ -58,6 +58,24 @@ Evolving Supercollider synths using Large Language Models
 
 <center><img src="PromptSynth.jpg" width="80%" alt="Description"></center>
 
+
+
+- Examples (video) : links to examples of script running while Supercollider interprets and generates realtime audio. 
+    - [danceCelebrate.mp4](https://drive.google.com/file/d/19qMvCt93aSonaV1_mXZQaARuYupRMwS7/view?usp=drive_link) 
+    - [drumMachine.mp4](https://drive.google.com/file/d/1LWSUAB4EUDUPXSK4S94LEXkyjzLBbQSC/view?usp=drive_link)
+    - [drumMachineFast.mp4](https://drive.google.com/file/d/1HmJCgiGYppnBR9q9mcRYuBWiCF3GDRz6/view?usp=drive_link)
+    - [fmSynth.mp4](https://drive.google.com/file/d/1Yd1a6amb7qMy3B8TJA6aYzOH0f29R_WH/view?usp=drive_link)
+    - [gentleMod.mp4](https://drive.google.com/file/d/1sN7t0zp78uStLMANbRwx0W1YERji8lde/view?usp=drive_link)
+    - [leadArp.mp4](https://drive.google.com/file/d/1qNb69F4l5vE-Ec6YjzOf1fa0X5KhCvBA/view?usp=drive_link)
+    - [leadArpScramble.mp4](https://drive.google.com/file/d/14zDJr-e0OEX7oe1lt7s4wA0cqIVcQQ9q/view?usp=drive_link)
+    - [metalicRhythm.mp4](https://drive.google.com/file/d/1iuV9SRzf1xHYuUHiB-a-6BOzVb21k9mY/view?usp=drive_link)
+    - [oceanGong.mp4](https://drive.google.com/file/d/16MWoZsP0YahS_qGImLlGn7-uizE9dFdh/view?usp=drive_link)
+    - [oceanWavesErrors.mp4](https://drive.google.com/file/d/1iHyJbBUWuscQgcoa622Z5YXlsnEzJdTX/view?usp=drive_link)
+    - [offHarmonics.mp4](https://drive.google.com/file/d/1qw-fbiqctG4xAbpBXOboZGdoM3jNSX1h/view?usp=drive_link)
+    - [pulsingSliding.mp4](https://drive.google.com/file/d/1rFWrjhsKSlXn0ITyOeY-dpGwYsQ3-Q1l/view?usp=drive_link)
+    - [richPad.mp4](https://drive.google.com/file/d/1u3vp4QFLhzIT6ktJPWeoFWUbggUerDuU/view?usp=drive_link)
+
+
 - Outcome so far : 
     - Very successful in creating a family of sounds that evolve over each iteration
     - Errors propagate but sometimes disappear after several iterations
@@ -66,10 +84,11 @@ Evolving Supercollider synths using Large Language Models
 
 ### Future : 
 
-- Build more robust ‘play ground’ for testing LLM’s and workflows
-- Rag (Retrieval-Augmented Generation), MCP (Model Context Protocol) and tooling.
-- Archive outputs : code and audio
-- Big dream : local model running on a RPI or Mac 
-- Mini that generates continuous soundscape with prompting (text for now) that guides the composition.
+- Rag (Retrieval-Augmented Generation), MCP (Model Context Protocol) and general tooling.
+- Build more robust ‘play ground’ for testing LLM’s, workflows and prompting strategies.
+- Archive outputs : code, audio, error, analysis.
+- Automate automate automate : batch process all of it.
+- Local model version.
 - Looking for collaborators :  ideas, techniques, code
+- Big dream : local model running on a RPI that generates continuous soundscape with prompting (text for now) that guides the composition.
     
