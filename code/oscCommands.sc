@@ -1,7 +1,8 @@
 (
 var o = Server.local.options;
 // o.outDevice = ServerOptions.devices[ServerOptions.devices.indexOfEqual("Soundflower (2ch)")];
-o.outDevice = ServerOptions.devices[ServerOptions.devices.indexOfEqual("SERIES 208i")];
+// o.outDevice = ServerOptions.devices[ServerOptions.devices.indexOfEqual("SERIES 208i")];
+o.outDevice = ServerOptions.devices[ServerOptions.devices.indexOfEqual("Built-in Output")];
 o.numOutputBusChannels = 2;
 
 s.waitForBoot({
