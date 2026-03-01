@@ -4,7 +4,7 @@
 Anthropic{
 	classvar <uris;
 	classvar <>apiKey;
-	classvar <>model = "claude-3-5-sonnet-20241022";
+	classvar <>model = "claude-opus-4-6";
 	classvar <>maxTokens = 1000;
 	classvar <>temperature = 0.7;
 	classvar <>version = "2023-06-01";
@@ -293,7 +293,7 @@ AnthropicMessage : AnthropicObj{
 		var pattern = "```%?([\\s\\S]*?)```".format(language ? "");
 		var matches = text.findRegexp(pattern);
 		var codeBlocks = [];
-		
+
 		if(matches.notNil and: {matches.isArray}) {
 			matches.do({|match|
 				if(match.isArray and: {match.size > 1}) {
@@ -301,7 +301,7 @@ AnthropicMessage : AnthropicObj{
 				};
 			});
 		};
-		
+
 		^codeBlocks;
 	}
 
