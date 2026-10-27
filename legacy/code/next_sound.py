@@ -2,6 +2,7 @@ import anthropic
 import re
 from pythonosc import udp_client
 import time
+import os
 
 count = 4
 secsPerSynth = 10
@@ -11,11 +12,11 @@ port = 57120
 oscClient = udp_client.SimpleUDPClient(ip, port)
 
 client = anthropic.Anthropic()
-path = "/Users/soh_la/Develop/Python/Projects/claude/"
+path = os.path.dirname(os.path.abspath(__file__)) + "/"
 name = "template"
 index = 0
 
-file_path = 'prompt.sc'
+file_path = f'{path}prompt.sc'
 with open(file_path, 'r') as file:
     prompt = file.read()
 

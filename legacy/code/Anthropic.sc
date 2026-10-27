@@ -57,7 +57,7 @@ Anthropic{
 }
 
 AnthropicReq{
-	var <url, <filePath, <cmd, <payload, <headers;
+	var <url, <filePath, <cmd, <payload, <headers, headerFile, payloadFile;
 
 	*new{|anUrl, payload, method="POST"|
 		Anthropic.loadApiKey;
@@ -76,19 +76,18 @@ AnthropicReq{
 	}
 
 	init{|anUrl, aPayload, method="POST"|
-		var jsonString, payloadFile, headerString;
+		var jsonString;
 
 		url = anUrl;
 		payload = aPayload;
 		filePath = PathName.tmp ++ "anthropic_" ++ UniqueID.next ++ ".json";
 		headers = AnthropicReq.getHeaders;
 
-		headerString = "";
-		headers.do({|h|
-			headerString = headerString ++ "-H \"" ++ h ++ "\" ";
-		});
+		// headers go in a temp file (curl -H @file) so the API key never appears on the command line
+		headerFile = PathName.tmp ++ "anthropic_headers_" ++ UniqueID.next ++ ".txt";
+		File(headerFile, "w").write(AnthropicReq.joinArray(headers, "\n")).close;
 
-		cmd = "curl -s -X % %".format(method, headerString);
+		cmd = "curl -s -X % -H @\"%\"".format(method, headerFile);
 
 		if(payload.notNil) {
 			// Use basic JSON encoding (JSONlib doesn't have stringify)
@@ -96,20 +95,11 @@ AnthropicReq{
 
 			payloadFile = PathName.tmp ++ "anthropic_payload_" ++ UniqueID.next ++ ".json";
 
-			// Debug: print the JSON being sent
-			"Generated JSON payload:".postln;
-			jsonString.postln;
-			"JSON length: %".format(jsonString.size).postln;
-
 			File(payloadFile, "w").write(jsonString).close;
 			cmd = cmd ++ " -d @\"%\"".format(payloadFile);
 		};
 
 		cmd = cmd ++ " \"%\" > \"%\"".format(url, filePath);
-
-		// Debug: print the full curl command
-		"Curl command:".postln;
-		cmd.postln;
 	}
 
 	// Fallback basic JSON encoder if JSONlib is not available
@@ -157,6 +147,8 @@ AnthropicReq{
 		cmd.unixCmd({|res, pid|
 			var obj = nil;
 			var str = "";
+
+			[headerFile, payloadFile].do { |f| if(f.notNil and: { File.exists(f) }) { File.delete(f) } };
 
 			if(File.exists(filePath)) {
 				str = File(filePath, "r").readAllString;
@@ -248,12 +240,12 @@ AnthropicMessage : AnthropicObj{
 		AnthropicReq.new(Anthropic.uri(\MESSAGES), payload).execute(action, AnthropicMessage);
 	}
 
-	*simpleCompletion{|prompt, systemPrompt, action|
+	*simpleCompletion{|prompt, systemPrompt, action, maxTokens|
 		var messages = [
 			("role": "user", "content": prompt)
 		];
 
-		AnthropicMessage.create(messages, systemPrompt, action: action);
+		AnthropicMessage.create(messages, systemPrompt, maxTokens: maxTokens, action: action);
 	}
 
 	*codeGeneration{|prompt, language="supercollider", action|

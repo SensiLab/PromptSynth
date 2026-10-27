@@ -37,7 +37,7 @@ Evolving Supercollider synths using Large Language Models
 - 2025 : The need to automate : [Claude’s API](https://docs.anthropic.com/en/release-notes/api). $ign me up!
 
 
-### Present :
+### Prototype (now in [`legacy/`](legacy/README.md)) :
 
 - Dependencies : Claude.ai API / Supercollider / Python
 
@@ -45,14 +45,14 @@ Evolving Supercollider synths using Large Language Models
     - Create Virtual Environment
     - Install Python Requirements
     - set ```export ANTHROPIC_API_KEY=```
-    - Set a prototype synth ```template_0.sc```
-    - Set prompt (used for every iteration) ```prompt.sc```
-    - Run ```oscCommands.sc``` in SC
-    - Run ```next_sound.py``` in Python
+    - Set a prototype synth ```legacy/code/template_0.sc```
+    - Set prompt (used for every iteration) ```legacy/code/prompt.sc```
+    - Run ```legacy/code/oscCommands.sc``` in SC
+    - Run ```legacy/code/next_sound.py``` in Python
 
 - How it works :
     - Hacked together as a very basic work flow
-    - Send Claude : ```template_0.sc``` and ```prompt.sc```
+    - Send Claude : ```legacy/code/template_0.sc``` and ```legacy/code/prompt.sc```
     - Claude returns some code : (and calls SC to load, interpret and play new Synth Definition code)
     - Each iteration is saved and loaded into SC, so every iteration is archived.
 
