@@ -30,7 +30,7 @@ setupChannels: { |self|
 			bus: Bus(\control, self.inputBus.index + i, 1, self.server))
 	};
 	SynthDef(\ps_input, { |out|
-		Out.kr(out, [MouseX.kr(0, 1, 0, 0.05), MouseY.kr(1, 0, 0, 0.05), MouseButton.kr(0, 1, 0.01)]
+		Out.kr(out, [MouseX.kr(0, 1, 0, 0.05), MouseY.kr(0, 1, 0, 0.05), MouseButton.kr(0, 1, 0.01)]
 			++ keys.collect { |kv| KeyState.kr(kv[1], 0, 1, 0.01) })
 	}).add;
 },
