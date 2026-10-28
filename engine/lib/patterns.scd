@@ -148,6 +148,7 @@ defaultPattern: { |self, name, synth|
 
 playPattern: { |self, name, synth|
 	var p = self.patternEntry(name), e;
+	self.requireServer;
 	if (synth.notNil and: { synth.asSymbol != p[\synth] }) {
 		if (p[\fixed]) { Error("pattern '%' sets \\instrument itself, so it can't be rebound".format(name)).throw };
 		e = self.synthEntry(synth);

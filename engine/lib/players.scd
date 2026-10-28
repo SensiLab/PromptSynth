@@ -5,6 +5,11 @@ synthEntry: { |self, name|
 	self.synths[name.asSymbol] ?? { Error("unknown synth '%'; define it first".format(name)).throw }
 },
 
+// without it, plays look fine and every note goes to a dead server
+requireServer: { |self|
+	if (self.server.serverRunning.not) { Error("server is not running").throw }
+},
+
 paramOf: { |self, e, key|
 	e[\params].detect { |p| p[\name] == key.asSymbol }
 		?? { Error("'%' has no param '%' (params: %)".format(e[\name], key, e[\params].collect(_[\name]))).throw }
@@ -63,6 +68,7 @@ instanceArgs: { |self, e|
 
 playSynth: { |self, name|
 	var e = self.synthEntry(name), syn;
+	self.requireServer;
 	e[\instance] !? { |old| self.stopInstance(e, old) };
 	// fx go last in the source group so they process everything before them
 	syn = if (e[\kind] == \fx) { Synth.tail(self.sourceGroup, e[\name], self.instanceArgs(e)) } {
