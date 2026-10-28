@@ -47,24 +47,38 @@ n.sendMsg('/ps/synth/release', \texture);
 // one-shot: each play triggers a new note
 n.sendMsg('/ps/synth/play', \perc);
 
-// 5. patterns: the default pattern, then change it live
-n.sendMsg('/ps/pattern/play', \perc);
-n.sendMsg('/ps/pattern/set', \perc, \degree, 0, 2, 4, \r, 7, 4);
-n.sendMsg('/ps/pattern/set', \perc, \scale, \dorian);
-n.sendMsg('/ps/pattern/set', \perc, \dur, "Pwhite(0.1, 0.3)");
-n.sendMsg('/ps/param/set', \perc, \decay, 1.2);      // bus param still applies to every note
+// 5. patterns are named and bound to a synth: a quick default pattern, changed live
+n.sendMsg('/ps/pattern/default', \percs, \perc);
+n.sendMsg('/ps/pattern/play', \percs);
+n.sendMsg('/ps/pattern/set', \percs, \degree, 0, 2, 4, \r, 7, 4);
+n.sendMsg('/ps/pattern/set', \percs, \scale, \dorian);
+n.sendMsg('/ps/pattern/set', \percs, \dur, "Pwhite(0.1, 0.3)");
+n.sendMsg('/ps/param/set', \perc, \decay, 1.2);      // synth params still reach every note
 n.sendMsg('/ps/tempo', 90);
-n.sendMsg('/ps/pattern/stop', \perc);
+n.sendMsg('/ps/pattern/play', \percs, \pad);           // same pattern, another synth
+n.sendMsg('/ps/pattern/stop', \percs);
 
-// pad as a pattern, with a custom Pbind file
-n.sendMsg('/ps/pattern/define', \pad, ~fx.("pattern.scd"));
-n.sendMsg('/ps/pattern/play', \pad);
-n.sendMsg('/ps/pattern/stop', \pad);
+// a pattern from a file (saved to library/patterns/walk/), bound to pad
+n.sendMsg('/ps/pattern/define', \walk, ~fx.("pattern.scd"), \pad);
+n.sendMsg('/ps/pattern/play', \walk);
+n.sendMsg('/ps/pattern/get', \walk);
+n.sendMsg('/ps/pattern/stop', \walk);
 
-// 6. record 4 seconds while something plays -> library/pad/recordings/
-n.sendMsg('/ps/pattern/play', \pad);
-n.sendMsg('/ps/rec/start', \pad, 4);
+// 6. control channels and mappings: synths never read the mouse; channels are mapped onto params
+n.sendMsg('/ps/channel/list');
+n.sendMsg('/ps/map', \pad, \cutoff, \mouseX);               // range and warp from the param's spec
+n.sendMsg('/ps/map', \pad, \detune, \mouseY, 0, 0.05, \lin);
+n.sendMsg('/ps/synth/play', \pad);                          // move the mouse
+n.sendMsg('/ps/map', \pad, \amp, \key_space, 0.05, 0.4);    // louder while space is held
+n.sendMsg('/ps/channel/set', \fader1, 0.5);                 // any other name is an OSC channel
+n.sendMsg('/ps/map', \pad, \cutoff, \fader1);
+n.sendMsg('/ps/unmap', \pad, \cutoff);
+n.sendMsg('/ps/synth/release', \pad);
 
-// 7. state, panic
+// 7. record 4 seconds while something plays -> library/patterns/walk/recordings/
+n.sendMsg('/ps/pattern/play', \walk);
+n.sendMsg('/ps/rec/start', \walk, 4);
+
+// 8. state, panic
 n.sendMsg('/ps/status');
 n.sendMsg('/ps/panic');

@@ -2,8 +2,9 @@
 // Engine functions live in one Event and are called as ps.method(...); each gets the Event as `self`.
 (
 // keys set at runtime; listed so assertKeys can check them too
-dataKeys: #[server, synths, subscribers, oscDefs, masterBus, sourceGroup, testGroup,
-	masterGroup, masterSynth, treeFunc, recPath, isReady, commands],
+dataKeys: #[server, synths, patterns, channels, subscribers, oscDefs, masterBus, inputBus,
+	inputGroup, sourceGroup, testGroup, masterGroup, masterSynth, inputSynth, treeFunc, recPath,
+	isReady, commands, stateToken, startedAt],
 
 // Event methods win over keys (e.g. ps.play would call Event:play), so refuse clashing names
 assertKeys: { |self|

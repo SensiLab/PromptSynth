@@ -1,11 +1,15 @@
 // Recording the master output (post limiter) to WAV.
-// With a synth name the file goes to library/<name>/recordings/, otherwise library/_recordings/.
+// With a synth or pattern name the file goes to its recordings/ folder, otherwise library/_recordings/.
 (
 startRec: { |self, name, dur|
 	var server = self.server, dir, path;
 	if (server.isRecording) { Error("already recording to %".format(self.recPath)).throw };
-	name = name !? { |n| self.synthEntry(n)[\name] };
-	dir = if (name.notNil) { self.synthDir(name) +/+ "recordings" } { self.libraryDir +/+ "_recordings" };
+	name = name !? (_.asSymbol);
+	dir = case
+		{ name.isNil } { self.libraryDir +/+ "_recordings" }
+		{ self.synths[name].notNil } { self.synthDir(name) +/+ "recordings" }
+		{ self.patterns[name].notNil } { self.patternDir(name) +/+ "recordings" }
+		{ Error("unknown synth or pattern '%'".format(name)).throw };
 	File.mkdir(dir);
 	path = dir +/+ (name ? "master").asString ++ "_" ++ self.timestamp ++ ".wav";
 	server.recHeaderFormat = self.config[\recHeaderFormat];

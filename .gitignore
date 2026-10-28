@@ -20,7 +20,7 @@ venv/
 legacy/code/template_[1-9]*.sc
 
 # audio recordings: large binaries, kept out of git by default
-library/*/recordings/
+library/**/recordings/
 library/_recordings/
 
 # failed definitions archive: local debugging data

@@ -39,6 +39,9 @@ contractCheck: { |self, def|
 		errors.add("needs an `out` argument, and must write to it with Out.ar(out, sig)")
 	};
 	if (outs.isEmpty) { errors.add("has no Out.ar, so it makes no sound") };
+	def.children.select { |u| self.inputUGens.any { |c| u.isKindOf(c) } }.collect(_.class).asSet.do { |c|
+		errors.add("reads %, but synths never read the mouse or keyboard: expose a param and map a control channel to it (/ps/map)".format(c.name))
+	};
 	outs.do { |u|
 		var ch = u.inputs.size - (if (u.isKindOf(XOut)) { 2 } { 1 });
 		channels = max(channels, ch);
@@ -60,6 +63,9 @@ contractCheck: { |self, def|
 			{ names.includes(\gate) } { \sustained }
 			{ \oneshot })
 },
+
+// input lives in control channels (lib/channels.scd), never inside a synth
+inputUGens: [MouseX, MouseY, MouseButton, KeyState],
 
 // fx: metadata (fx: true). Runs at the end of the source group, reads the mix from `in`
 // and writes it back to `out` (usually with ReplaceOut)
@@ -165,7 +171,7 @@ smokeTest: { |self, def, kind, hasGate|
 // opts: smoke (run the audio test), save (write to the library)
 runDefine: { |self, name, path, infoJson, opts|
 	var res = (name: name, ok: false, errors: List[], warnings: List[]);
-	var src, ev, def, check, params, smoke, failures, failFn, logId;
+	var src, ev, def, check, params, smoke, failures, failFn, logId, e;
 	opts = (smoke: true, save: true).putAll(opts ? ());
 
 	block { |break|
@@ -224,8 +230,10 @@ runDefine: { |self, name, path, infoJson, opts|
 		res[\params] = params.collect { |p|
 			(name: p[\name], rate: p[\rate], default: p[\default], spec: self.specJSON(p[\spec]))
 		};
-		self.registerEntry(def, check[\kind], res[\source], params, check[\channels], check[\hasGate]);
-		if (opts[\save]) { self.saveSynth(name, src, infoJson, res) };
+		e = self.registerEntry(def, check[\kind], res[\source], params, check[\channels], check[\hasGate]);
+		e[\hash] = if (opts[\save]) { self.saveSynth(name, src, infoJson, res) } { self.fileHash(path) };
+		res[\hash] = e[\hash];
+		res[\warnings].addAll(self.followSynth(e[\name]));
 	};
 
 	res[\errors] = res[\errors].reject(_.isNil).asArray;
@@ -245,7 +253,7 @@ defineSynth: { |self, name, path, infoJson, action|
 	// SystemClock: waits are in seconds whatever the tempo
 	{
 		var res = self.runDefine(name, path, infoJson);
-		if (res[\ok]) { self.broadcast('/ps/event/defined', name) };
+		if (res[\ok]) { self.broadcast('/ps/event/defined', \synth, name, res[\hash]) };
 		action.value(res);
 	}.fork(SystemClock)
 }

@@ -13,5 +13,7 @@
 	releaseTimeout: 5,        // seconds a released synth gets to free itself
 	recHeaderFormat: "wav",
 	recSampleFormat: "int24",
-	tempo: 120
+	tempo: 120,
+	keys: \all               // keys watched as key_<name> channels: \all, nil, or e.g. [\a, \s, \space].
+	                          // macOS may ask to allow Input Monitoring for scsynth
 )

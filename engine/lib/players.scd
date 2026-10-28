@@ -1,15 +1,6 @@
 // Playing synths. Each control-rate param has a control bus; instances and pattern events
-// are mapped to those buses, so one /ps/param/set drives both.
+// are mapped to those buses, so one /ps/param/set (or a mapping) drives both.
 (
-// keys the default Event computes itself; never bus-mapped in patterns
-eventKeys: #[freq, midinote, note, degree, octave, root, scale, dur, legato, sustain, stretch,
-	detune, harmonic, ctranspose, mtranspose, gtranspose, lag, timingOffset, tempo, db,
-	instrument, group, out],
-
-patternDefaults: { |self|
-	(degree: [0, 2, 4, 7], dur: [0.25], octave: [5], legato: [0.8], scale: [\major], root: [0])
-},
-
 synthEntry: { |self, name|
 	self.synths[name.asSymbol] ?? { Error("unknown synth '%'; define it first".format(name)).throw }
 },
@@ -24,10 +15,16 @@ registerEntry: { |self, def, kind, source, params, channels, hasGate|
 	e = (name: name, kind: kind, source: source, def: def, params: params, channels: channels, hasGate: hasGate,
 		buses: old !? { old[\buses] } ?? { IdentityDictionary() },
 		paramValues: old !? { old[\paramValues] } ?? { IdentityDictionary() },
+		mappings: old !? { old[\mappings] } ?? { IdentityDictionary() },
 		instance: old !? { old[\instance] },
-		patternKeys: old !? { old[\patternKeys] },
-		userPattern: old !? { old[\userPattern] });
+		hash: old !? { old[\hash] });
 
+	// drop buses, values and mappings of params this version no longer has
+	e[\mappings].keys.copy.do { |k|
+		if (params.any { |p| p[\name] == k and: { p[\rate] == \control } }.not) {
+			e[\mappings].removeAt(k)[\node].free
+		}
+	};
 	e[\buses].keys.copy.do { |k|
 		if (params.any { |p| p[\name] == k and: { p[\rate] == \control } }.not) { e[\buses].removeAt(k).free }
 	};
@@ -49,7 +46,6 @@ registerEntry: { |self, def, kind, source, params, channels, hasGate|
 
 	// hot-swap: a running instance restarts on the new definition
 	if (e[\instance].notNil) { self.playSynth(name) };
-	if (e[\patternKeys].notNil) { self.updatePdef(e) };
 	e
 },
 
@@ -105,7 +101,9 @@ setParam: { |self, name, key, value|
 	{ p[\rate] == \control } { e[\buses][p[\name]].set(value) }
 	{ e[\instance].notNil } { e[\instance].set(p[\name], value) };
 	self.broadcast('/ps/event/param', e[\name], p[\name], value);
-	(ok: true, value: value)
+	self.saveStateSoon;
+	// while mapped, the channel drives the bus; this value applies again when unmapped
+	(ok: true, value: value, mappedTo: e[\mappings][p[\name]] !? { |m| m[\channel] })
 },
 
 // 0..1 from faders/controllers, mapped through the param's spec
@@ -115,133 +113,18 @@ setParamNorm: { |self, name, key, norm|
 },
 
 paramState: { |self, name|
-	var e = self.synthEntry(name);
-	(ok: true, name: e[\name], kind: e[\kind], playing: e[\instance].notNil,
-		values: e[\paramValues],
+	var e = self.synthEntry(name), mappings = ();
+	e[\mappings].keysValuesDo { |k, m| mappings[k] = (channel: m[\channel], min: m[\min], max: m[\max], warp: m[\warp]) };
+	(ok: true, name: e[\name], kind: e[\kind], hash: e[\hash], playing: e[\instance].notNil,
+		values: e[\paramValues], mappings: mappings,
 		params: e[\params].collect { |p| (name: p[\name], rate: p[\rate], spec: self.specJSON(p[\spec])) })
-},
-
-// --- patterns ---
-
-pdefKey: { |self, name| ("ps_" ++ name).asSymbol },
-
-ensurePattern: { |self, e|
-	if (e[\patternKeys].isNil) {
-		e[\patternKeys] = IdentityDictionary();
-		self.patternDefaults.keysValuesDo { |k, v| self.putPatternKey(e, k, v) };
-		self.updatePdef(e);
-	}
-},
-
-// OSC values -> a stream: one value repeats, several make a loop; r/rest = rest,
-// strings that compile to a Pattern are used as patterns, scale takes a Scale name
-patternValue: { |self, key, vals|
-	var err;
-	var conv = vals.collect { |v|
-		var sym = if (v.isNumber) { nil } { v.asSymbol }, ev;
-		case
-		{ v.isNumber } { v }
-		{ #[r, rest].includes(sym) } { Rest() }
-		{ key == \scale } { Scale.at(sym) ?? { err = "unknown scale '%'".format(v); nil } }
-		{
-			ev = self.evalSource(v.asString);
-			if (ev[\ok] and: { ev[\value].isKindOf(Pattern) or: { ev[\value].isNumber } }) { ev[\value] } {
-				err = "can't use '%' as a value for %".format(v, key); nil
-			}
-		}
-	};
-	if (err.notNil) { Error(err).throw };
-	if (conv.size == 1) { Pn(conv[0], inf) } { Pseq(conv, inf) }
-},
-
-putPatternKey: { |self, e, key, vals|
-	var pdefn = Pdefn(("ps_" ++ e[\name] ++ "_" ++ key).asSymbol);
-	pdefn.source = self.patternValue(key, vals);
-	e[\patternKeys][key] = pdefn;
-},
-
-updatePdef: { |self, e|
-	var name = e[\name], pairs, inner;
-	var base = [\instrument, name, \out, Pfunc { self.masterBus.index }, \group, Pfunc { self.sourceGroup }];
-	e[\params].do { |p|
-		var k = p[\name];
-		if (self.eventKeys.includes(k).not) {
-			case
-			{ p[\rate] == \control } { base = base ++ [k, e[\buses][k].asMap] }
-			{ #[scalar, trigger].includes(p[\rate]) } { base = base ++ [k, Pfunc { e[\paramValues][k] }] }
-		}
-	};
-	pairs = e[\patternKeys].keys.asArray.sort.collect { |k| [k, e[\patternKeys][k]] }.flatten;
-	inner = case
-		{ e[\userPattern].isNil } { Pbind(*pairs) }
-		{ pairs.isEmpty } { e[\userPattern] }
-		{ Pbindf(e[\userPattern], *pairs) };
-	Pdef(self.pdefKey(name), Pchain(inner, Pbind(*base)));
-},
-
-playPattern: { |self, name|
-	var e = self.synthEntry(name);
-	if (e[\kind] == \fx) { Error("'%' is an fx; play it with /ps/synth/play".format(name)).throw };
-	self.ensurePattern(e);
-	Pdef(self.pdefKey(e[\name])).play(TempoClock.default, quant: 1);
-	self.broadcast('/ps/event/pattern', e[\name], 1);
-	(ok: true)
-},
-
-stopPattern: { |self, name|
-	var e = self.synthEntry(name);
-	Pdef(self.pdefKey(e[\name])).stop;
-	self.broadcast('/ps/event/pattern', e[\name], 0);
-	(ok: true)
-},
-
-setPatternKey: { |self, name, key, vals|
-	var e = self.synthEntry(name), isNew;
-	if (vals.isEmpty) { Error("pattern/set needs at least one value").throw };
-	self.ensurePattern(e);
-	key = key.asSymbol;
-	isNew = e[\patternKeys][key].isNil;
-	self.putPatternKey(e, key, vals);
-	if (isNew) { self.updatePdef(e) };
-	(ok: true)
-},
-
-patternPlaying: { |self, name| Pdef.all[self.pdefKey(name)] !? { |p| p.isPlaying } ? false },
-
-// a pattern file evaluates to a Pattern; the engine adds \instrument, buses and output
-definePattern: { |self, name, path, save = true|
-	var e = self.synthEntry(name), src = self.readFile(path), ev, err, logId = UniqueID.next;
-	if (src.isNil) { Error("can't read %".format(path)).throw };
-	self.logMark("begin", logId);
-	ev = self.evalSource(src);
-	if (ev[\ok] and: { ev[\value].isKindOf(Pattern).not }) {
-		ev = (ok: false, stage: \evaluate, error: "pattern code must evaluate to a Pattern such as Pbind(...), got %".format(ev[\value].class.name))
-	};
-	if (ev[\ok]) {
-		err = try {
-			var str = Pchain(ev[\value], Pbind(\instrument, e[\name])).asStream;
-			16.do { str.next(Event.default) };
-			nil
-		} { |x| self.errorText(x) };
-		if (err.notNil) { ev = (ok: false, stage: \evaluate, error: err) };
-	};
-	self.logMark("end", logId);
-	if (ev[\ok]) {
-		e[\userPattern] = ev[\value];
-		e[\patternKeys] = IdentityDictionary();
-		self.updatePdef(e);
-		if (save) { self.saveVersioned(e[\name], "pattern.scd", src) };
-		(ok: true, name: e[\name], logId: logId)
-	} {
-		self.log("pattern for % failed: %".format(e[\name], ev[\error]));
-		(ok: false, name: e[\name], stage: ev[\stage], errors: [ev[\error]], logId: logId)
-	}
 },
 
 setTempo: { |self, bpm|
 	bpm = bpm.asFloat.clip(10, 400);
 	TempoClock.default.tempo = bpm / 60;
 	self.broadcast('/ps/event/tempo', bpm);
+	self.saveStateSoon;
 	(ok: true, bpm: bpm)
 },
 
@@ -250,12 +133,13 @@ setMasterAmp: { |self, amp|
 	self.config[\masterAmp] = amp;
 	self.masterSynth.set(\amp, amp);
 	self.broadcast('/ps/event/master', amp);
+	self.saveStateSoon;
 	(ok: true, amp: amp)
 },
 
 panic: { |self|
+	self.patterns.keys.do { |name| if (self.patternPlaying(name)) { self.stopPattern(name) } };
 	self.synths.do { |e|
-		Pdef(self.pdefKey(e[\name])).stop;
 		if (e[\instance].notNil) { e[\instance] = nil; self.broadcast('/ps/event/synth', e[\name], 0) };
 	};
 	self.sourceGroup.freeAll;

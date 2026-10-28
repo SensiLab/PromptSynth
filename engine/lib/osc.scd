@@ -5,9 +5,9 @@
 // path -> [handler(args, addr), alwaysReply]. Handlers return a result Event, or nil when
 // they reply later themselves. Other commands only reply when they fail.
 oscCommands: { |self|
-	var name = { |args| args[0] ?? { Error("missing synth name").throw } };
+	var name = { |args| args[0] ?? { Error("missing name").throw } };
 	(
-		'/ps/ping': [{ (ok: true, version: Main.version, langPort: NetAddr.langPort, ready: self.isReady == true) }, true],
+		'/ps/ping': [{ self.pingInfo }, true],
 		'/ps/status': [{ self.statusInfo }, true],
 		'/ps/subscribe': [{ |args, addr|
 			var sub = NetAddr(addr.ip, args[0] ?? { addr.port });
@@ -32,12 +32,29 @@ oscCommands: { |self|
 		'/ps/param/norm': [{ |args| self.setParamNorm(name.(args), args[1], args[2] ?? { Error("missing value").throw }) }, false],
 		'/ps/param/get': [{ |args| self.paramState(name.(args)) }, true],
 
-		'/ps/pattern/play': [{ |args| self.playPattern(name.(args)) }, false],
+		// /ps/pattern/define name path [synth] [infoJson]: an arg starting with { is the info
+		'/ps/pattern/define': [{ |args|
+			var rest = args.drop(2).collect(_.asString), info = rest.detect { |a| a.beginsWith("{") };
+			var synth = rest.detect { |a| a.beginsWith("{").not and: { a.size > 0 } };
+			self.definePattern(name.(args), (args[1] ?? { Error("missing path").throw }).asString,
+				synth !? (_.asSymbol), info)
+		}, true],
+		'/ps/pattern/default': [{ |args| self.defaultPattern(name.(args), args[1] ?? { Error("missing synth").throw }) }, true],
+		'/ps/pattern/play': [{ |args| self.playPattern(name.(args), args[1]) }, true],
 		'/ps/pattern/stop': [{ |args| self.stopPattern(name.(args)) }, false],
 		'/ps/pattern/set': [{ |args| self.setPatternKey(name.(args), args[1], args.drop(2)) }, false],
-		'/ps/pattern/define': [{ |args|
-			self.definePattern(name.(args), (args[1] ?? { Error("missing path").throw }).asString)
+		'/ps/pattern/get': [{ |args| self.patternState(name.(args)) }, true],
+
+		'/ps/channel/set': [{ |args| self.channelSet(name.(args), args[1] ?? { Error("missing value").throw }) }, false],
+		'/ps/channel/list': [{ self.channelList }, true],
+		// /ps/map synth param channel [min max] [warp]
+		'/ps/map': [{ |args|
+			var warp = args[5] ?? { if (args[3].notNil and: { args[3].isNumber.not }) { args[3] } };
+			var range = if (args[3].isNumber) { [args[3], args[4]] } { [nil, nil] };
+			self.mapParam(name.(args), args[1] ?? { Error("missing param").throw },
+				args[2] ?? { Error("missing channel").throw }, range[0], range[1], warp)
 		}, true],
+		'/ps/unmap': [{ |args| self.unmapParam(name.(args), args[1] ?? { Error("missing param").throw }) }, true],
 
 		'/ps/tempo': [{ |args| self.setTempo(args[0] ?? { Error("missing bpm").throw }) }, false],
 		'/ps/master/amp': [{ |args| self.setMasterAmp(args[0] ?? { Error("missing amp").throw }) }, false],
@@ -73,7 +90,7 @@ startOSC: { |self|
 				};
 				nil
 			})
-		}, path)
+		}, path).permanent_(true)    // OSCdefs are removed on Cmd-period otherwise
 	};
 },
 
