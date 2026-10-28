@@ -14,6 +14,8 @@ Status 2026-10-28. Architecture questions answered (see `decisions.md`); phase 2
   - `tools/psosc.mjs` CLI
 
   See `engine/README.md`.
+- **File watching** (2026-10-28): while a synth or pattern plays, saving over its library file
+  reloads it without a new version.
 
 ## Shape
 
@@ -84,9 +86,7 @@ the UI and the move log are built on top of it.
 
 - **Master:** scope, freq scope.
 - **Strips:** a meter per strip. Later, a freq scope and spectrum graph per strip.
-- **Params:** knobs showing the live bus value, so mapped params move. Read via
-  `Bus.getSynchronous` (shared memory, local server), about 30 fps.
-- **Inputs and patterns:** control channel meters, and a flash for each pattern note.
+- **Patterns:** a flash for each pattern note.
 - **History:** version timeline per synth and the heat map, both from the jsonl files.
 - **Prompt:** prompt box plus a live generation log.
 
@@ -103,7 +103,6 @@ the UI and the move log are built on top of it.
 2. **Phase 3: SC UI v1.**
    - Prompt window with the generation log and cancel.
    - Library list with play/stop.
-   - Param panel with live values.
    - Strip meters with gain and mute.
    - Master scope and freq scope.
    - Spike first: does 30–60 fps drawing in the engine's interpreter hurt pattern timing?

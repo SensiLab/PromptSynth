@@ -25,6 +25,12 @@ sounded good. Audio can be recorded as samples.
   `claudePath` goes in `engine/config.scd`.
 - 2026-10-28: **per-synth meters** wanted, plus per-synth freq scope and spectrum graphs later.
   Every synth gets its own channel strip (submix bus) before master.
+- 2026-10-29: **one main window**; analysis (scopes, spectra) in a separate window.
+- 2026-10-29: the **mouse channel reads the whole screen**; the UI doesn't capture the mouse.
+- 2026-10-29: **mappings are always made in code** (OSC / Claude), never in the UI.
+- 2026-10-29: **the code is the interface.** The UI shows no params and no control channel
+  values, moving or not. Steph: "i dont want to see parameters moving. the code is the
+  interface and i see with my ears."
 
 ## Terms (2026-10-28)
 
