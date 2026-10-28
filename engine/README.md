@@ -86,6 +86,24 @@ sets a key that's neither a param of its synth nor a key the Event uses itself (
 Every play/stop goes into `patterns/<name>/pairings.jsonl` with the synth and pattern version
 hashes, so you can tell which versions played together and for how long.
 
+## Watching files
+
+While something plays, the engine watches its library file and reloads it when you save over it:
+the `pattern.scd` of each playing pattern, its synth's `synthdef.scd`, and the `synthdef.scd` of
+each playing synth instance. It checks `File.mtime` every 0.5 s and reloads when the content
+differs from the loaded version, through the same define path as at boot: no new version, history
+line or meta (the hash in `/ps/status` and `pairings.jsonl` is the edited file's). Synths still get
+the smoke test. If the edit doesn't compile, evaluate or pass the contract check, the previous version
+keeps playing. A file edited while stopped
+is picked up as soon as it plays. It all goes to the post window:
+
+```
+[ps] watch: watching synth warmDrone
+[ps] watch: synth warmDrone changed, reloading
+[ps] defined warmDrone (sustained, peak -17.1 dBFS)
+[ps] watch: reloaded synth warmDrone (9c1e0b7f3a21)
+```
+
 ## Control channels and mappings
 
 Built-in channels come from the `ps_input` synth: `mouseX`, `mouseY` (0 at the bottom, 1 at the

@@ -35,12 +35,14 @@ startEngine: { |self|
 		self.masterBus = Bus.audio(server, 2);
 		self.buildTree;
 		// brackets: reading a function-valued key with dot syntax would call it
-		self[\treeFunc] = { self.buildTree };
+		// Cmd-period also stops the watch routine, so it restarts here
+		self[\treeFunc] = { self.buildTree; self.startWatch };
 		ServerTree.add(self[\treeFunc], server);
 		server.sync;
 		self.loadLibrary;
 		self.restoreState;
 		self.startOSC;
+		self.startWatch;
 		self.isReady = true;
 		self.log("ready engine=% langPort=% library=%".format(self.engineVersion, NetAddr.langPort, self.libraryDir));
 		self.broadcast('/ps/event/ready', NetAddr.langPort);
@@ -49,6 +51,7 @@ startEngine: { |self|
 
 stopEngine: { |self|
 	self.stopOSC;
+	self.stopWatch;
 	self[\treeFunc] !? { |f| ServerTree.remove(f, self.server) };
 	self.patterns.do { |p| Pdef(self.pdefKey(p[\name])).stop };
 	self.synths.do { |e| e[\buses].do(_.free) };
