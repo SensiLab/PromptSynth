@@ -13,7 +13,39 @@
 synthDir: { |self, name| self.libraryDir +/+ "synths" +/+ name.asString },
 patternDir: { |self, name| self.libraryDir +/+ "patterns" +/+ name.asString },
 
-fileHash: { |self, path| ("shasum -a 1 " ++ path.shellQuote).unixCmdGetStdOut.keep(12) },
+// SHA-1 of the file, first 12 hex digits: the same as `shasum -a 1`. Computed here rather than by
+// running shasum, because starting a shell from sclang blocks the interpreter (and every playing
+// pattern with it) for most of a second. sclang Integers are 32-bit and wrap, as SHA-1 needs.
+fileHash: { |self, path|
+	var bytes, n, w = Array.newClear(80), hex = "0123456789abcdef";
+	var h = [1732584193, -271733879, -1732584194, 271733878, -1009589776];
+	var rotl = { |x, s| (x << s) | (x >> (32 - s)).bitAnd((1 << s) - 1) };
+	File.use(path, "rb", { |f| bytes = Int8Array.newClear(f.length); f.read(bytes) });
+	n = bytes.size;
+	// padding: 0x80, zeros up to 56 mod 64, then the length in bits as 64-bit big-endian
+	bytes = bytes.asArray.collect(_.bitAnd(255)) ++ [128] ++ (0 ! ((55 - n) % 64))
+		++ [0, 0, 0, 0] ++ [24, 16, 8, 0].collect { |s| ((n * 8) >> s).bitAnd(255) };
+	(bytes.size div: 64).do { |block|
+		var a, b, c, d, e, f, k, t, base = block * 64;
+		16.do { |i|
+			var j = base + (i * 4);
+			w[i] = (bytes[j] << 24) | (bytes[j + 1] << 16) | (bytes[j + 2] << 8) | bytes[j + 3]
+		};
+		(16..79).do { |i| w[i] = rotl.(w[i - 3].bitXor(w[i - 8]).bitXor(w[i - 14]).bitXor(w[i - 16]), 1) };
+		#a, b, c, d, e = h;
+		80.do { |i|
+			case
+			{ i < 20 } { f = (b & c) | (b.bitNot & d); k = 1518500249 }
+			{ i < 40 } { f = b.bitXor(c).bitXor(d); k = 1859775393 }
+			{ i < 60 } { f = (b & c) | (b & d) | (c & d); k = -1894007588 }
+			{ f = b.bitXor(c).bitXor(d); k = -899497514 };
+			t = rotl.(a, 5) + f + e + k + w[i];
+			e = d; d = c; c = rotl.(b, 30); b = a; a = t;
+		};
+		h = h + [a, b, c, d, e];
+	};
+	h.collect { |x| 8.collect { |i| hex[(x >> (28 - (i * 4))).bitAnd(15)] } }.flat.join.keep(12)
+},
 
 appendLine: { |self, path, str|
 	File.mkdir(path.dirname);

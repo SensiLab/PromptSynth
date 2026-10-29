@@ -82,6 +82,9 @@ tests = {
 	check.("pad has a 12-char hash", padHash.asString.size == 12, padHash);
 	check.("pad saved under synths/", File.exists(lib +/+ "synths/pad/synthdef.scd") and: { File.exists(lib +/+ "synths/pad/meta.json") });
 	check.("version stored by hash", File.exists(lib +/+ "synths/pad/versions" +/+ padHash ++ ".scd"));
+	// the engine hashes in sclang; it must agree with shasum, which named every stored version
+	check.("fileHash matches shasum", ["pad.scd", "texture.scd", "pattern.scd", "syntax.scd"].every { |f|
+		ps.fileHash(fx.(f)) == ("shasum -a 1 " ++ fx.(f).shellQuote).unixCmdGetStdOut.keep(12) });
 	check.("history line with info", lines.(lib +/+ "synths/pad/history.jsonl").size == 1 and: {
 		lines.(lib +/+ "synths/pad/history.jsonl")[0].parseJSON["info"]["prompt"] == "warm \"saw\" pad" });
 	check.("pad info.json verbatim", File.readAllString(lib +/+ "synths/pad/info.json").parseJSON["prompt"] == "warm \"saw\" pad");
