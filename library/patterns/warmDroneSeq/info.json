@@ -1,0 +1,1 @@
+{"author": "claude-code", "prompt": "change pattern to minor 7th arpeggio / swap on the bar: bar = one pass of the arpeggio, 6 beats / move to D F# A C# arp / pattern to D F A C / pattern to D F# A C# / whole tone from A / name its synth in code: \\instrument warmDrone"}
