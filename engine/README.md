@@ -95,6 +95,22 @@ sets a key that's neither a param of its synth nor a key the Event uses itself (
 Every play/stop goes into `patterns/<name>/pairings.jsonl` with the synth and pattern version
 hashes, so you can tell which versions played together and for how long.
 
+## UI
+
+`engine/ui.scd` opens the UI in the engine's sclang: evaluate it once the engine is up. Evaluating
+it again replaces it; it reopens itself after an engine restart and survives Cmd-period.
+
+- **Main window:** synths and patterns (▶ when playing; a pattern shows its synth), play/stop by
+  button or double-click, panic. The selected item's **trail**: its versions newest first, each
+  with what it changed (the new part of its prompt), ● on the loaded one. An **event log** (newest
+  first) from `/ps/event/*`, plus a warning when the pattern clock wakes more than 150 ms late (the
+  interpreter was blocked). A **master meter** of the hardware outs, after the limiter.
+- **Analysis window** (button): freq scope and scope of the outs.
+
+It shows no params and no control channel values: the code is the interface. It uses the
+engine's public functions and subscribes to its events. Nothing in it may block, since the
+pattern clock shares the interpreter.
+
 ## Watching files
 
 While something plays, the engine watches its library file and reloads it when you save over it:
@@ -196,6 +212,7 @@ Events to subscribers:
 | `/ps/event/master` | `amp` |
 | `/ps/event/rec` | `recording(0/1) path` |
 | `/ps/event/panic` | |
+| `/ps/event/log` | `text`: every line the engine posts as `[ps] ...` (defines, failures, watcher reloads) |
 
 ## How params work
 

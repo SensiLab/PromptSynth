@@ -13,7 +13,8 @@ assertKeys: { |self|
 	if (bad.notEmpty) { Error("[ps] engine keys clash with Event methods: %".format(bad)).throw };
 },
 
-log: { |self, str| ("[ps] " ++ str).postln },
+// also goes to subscribers as /ps/event/log, so a UI can show reloads and failures
+log: { |self, str| ("[ps] " ++ str).postln; self.broadcast('/ps/event/log', str.asString) },
 
 // brackets the post window output of an evaluation so the daemon can attach it to a result
 logMark: { |self, which, id| "[ps:log-%:%]".format(which, id).postln },
