@@ -28,6 +28,13 @@ sounded good. Audio can be recorded as samples.
 - 2026-10-29: **one main window**; analysis (scopes, spectra) in a separate window.
 - 2026-10-29: the **mouse channel reads the whole screen**; the UI doesn't capture the mouse.
 - 2026-10-29: **mappings are always made in code** (OSC / Claude), never in the UI.
+- 2026-10-29: **the UI is `engine/ui.scd`**, evaluated by hand once the engine is up, not opened
+  by the engine itself.
+- 2026-10-29: **patterns name their synth in code** with `\instrument`, so they can't be
+  rebound. To play a pattern on another synth, copy it under a new name (info records the
+  parent), e.g. `glassSeq` from `warmDroneSeq`.
+- 2026-10-29: **play, stop and swaps land on the pattern's bar line**; the bar length is in the
+  pattern (`\bar`, default 4 beats).
 - 2026-10-29: **the code is the interface.** The UI shows no params and no control channel
   values, moving or not. Steph: "i dont want to see parameters moving. the code is the
   interface and i see with my ears."
@@ -57,4 +64,7 @@ SC's own words: "it's SC!"
   twice. Performances will be hashed too, with parent links.
 - **Heat map is derived** from play/stop and version changes: time per synth version × pattern
   version. No ratings, stars, "good" flags or idle detection: Steph rejected them.
+- **Nothing may block the engine's interpreter** (shell commands, big file reads, per-frame
+  file access): the pattern clock shares it, and a stall over the server latency (0.2 s) makes
+  every playing note late. No `unixCmdGetStdOut` in the engine or UI.
 - Discuss design before building; don't add scope that wasn't asked for.

@@ -1,6 +1,6 @@
 # Plan
 
-Status 2026-10-28. Architecture questions answered (see `decisions.md`); phase 2 is next.
+Status 2026-10-29. UI v1 is up ahead of phase 2 (built on what exists); phase 2 is next.
 
 ## Done
 
@@ -16,6 +16,15 @@ Status 2026-10-28. Architecture questions answered (see `decisions.md`); phase 2
   See `engine/README.md`.
 - **File watching** (2026-10-28): while a synth or pattern plays, saving over its library file
   reloads it without a new version.
+- **mouseY direction fixed** (2026-10-28): 0 at the bottom, 1 at the top, as documented.
+- **Play fails when the server isn't running** (2026-10-29). Before, it said ok and played nothing.
+- **Bar lines** (2026-10-29): play, stop and pattern swaps wait for the pattern's next bar line.
+  A pattern sets its bar with `\bar` (default 4 beats); panic still stops at once.
+- **No shell calls in the engine** (2026-10-29): `fileHash` computes SHA-1 in sclang (same hashes
+  as `shasum`). `unixCmdGetStdOut` froze the interpreter ~1 s per call, so every define and
+  watched save made playing notes late (up to 1.36 s, seen in the post window).
+- **UI v1** (2026-10-29): `engine/ui.scd`, see the phase 3 entry. Engine side: `ps.log` also
+  broadcasts `/ps/event/log`. 121 tests.
 
 ## Shape
 
@@ -100,12 +109,18 @@ the UI and the move log are built on top of it.
    - `tools/mcp` (stdio) and `.mcp.json`.
    - A `gen` entry point that runs `claude -p` the way the UI will.
    - Success test: one prompt in a terminal gives a validated, playing synth.
-2. **Phase 3: SC UI v1.**
-   - Prompt window with the generation log and cancel.
-   - Library list with play/stop.
-   - Strip meters with gain and mute.
-   - Master scope and freq scope.
+2. **Phase 3: SC UI v1.** Done 2026-10-29 without the parts that need phase 2:
+   - Done: library list with play/stop, trail (versions and what each changed), event log with
+     a clock-stall warning, master meter, analysis window with freq scope and scope.
+   - Waiting for phase 2: prompt window with the generation log and cancel; strip meters with
+     gain and mute.
+   - Small gaps: a pending stop isn't shown (▶ stays until the bar line); the "▶ X on Y" log
+     line appears at the play request, not when the pattern starts on its bar.
    - Spike first: does 30–60 fps drawing in the engine's interpreter hurt pattern timing?
+     **Done 2026-10-29: no.** With hats and bass playing, clock wake-up lateness stayed at
+     1–3 ms at 30 and 60 fps, 8 ms max with 2000 shapes + 200 labels per frame, ~2 ms with
+     a freq scope and scope open; no `late` messages (latency is 0.2 s). The risk is blocking
+     calls (shell commands, big file reads), not drawing: load files once, never per frame.
 3. **Phase 4: move log and performances.**
    - `_log.jsonl` written by the engine.
    - Performance snapshot and restore (hashed, with parent links).
@@ -122,4 +137,17 @@ the UI and the move log are built on top of it.
 
 ## Open questions
 
-None blocking phase 2.
+None blocking phase 2. Notes to pick up:
+
+- **Launching `claude -p` from sclang may stall the clock.** `unixCmdGetStdOut` blocked for
+  ~0.6–1.1 s per call (measured in the sandbox). Measure `unixCmd` (async) with patterns
+  playing before phase 2 relies on it; if it blocks too, launch from somewhere else.
+- **A synth that compiles but fails the smoke test still reaches the server.** `runDefine`
+  adds the SynthDef before the smoke test, so new notes use it. Syntax, evaluate and contract
+  failures keep the old version. Affects OSC defines and watched saves.
+- **Swapping to a pattern with a different bar** happens on the new pattern's bar line, so the
+  old one can be cut mid-phrase.
+- **Crossfade / morph between patterns** was discussed (level fade, note-by-note morph, or as
+  the default on replace); nothing decided. Bar-line swaps were done instead.
+- **scsynth stopped twice on 2026-10-29** with no cause found; check the post window next time.
+- **Dependabot** reports 5 vulnerabilities (3 critical) on the GitHub repo; not looked into.
