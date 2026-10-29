@@ -144,7 +144,7 @@ setMasterAmp: { |self, amp|
 },
 
 panic: { |self|
-	self.patterns.keys.do { |name| if (self.patternPlaying(name)) { self.stopPattern(name) } };
+	self.patterns.keys.do { |name| if (self.patternPlaying(name)) { self.stopPattern(name, true) } };
 	self.synths.do { |e|
 		if (e[\instance].notNil) { e[\instance] = nil; self.broadcast('/ps/event/synth', e[\name], 0) };
 	};

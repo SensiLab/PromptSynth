@@ -16,6 +16,7 @@ startEngine: { |self|
 	self.server = server;
 	self.synths = IdentityDictionary();
 	self.patterns = IdentityDictionary();
+	self.pendingStops = IdentityDictionary();
 	self.subscribers = List[];
 	self.startedAt = self.isoNow;
 

@@ -1,6 +1,9 @@
 // Named patterns. A pattern plays one synth at a time (its binding) and the engine chains it with
 // that synth's param buses, so /ps/param/set and mappings reach every note. Every play/stop is
 // logged to patterns/<name>/pairings.jsonl with both version hashes.
+// Play, stop and replacing the source all happen on the pattern's next bar line. A pattern sets
+// its bar length in beats with a \bar key (first event's value), else 4. The engine uses \bar
+// itself; it never reaches the synth's params.
 (
 // keys the default Event uses itself: never bus-mapped, and fine for a pattern to set
 eventKeys: #[freq, midinote, note, degree, octave, root, scale, dur, legato, sustain, stretch,
@@ -47,6 +50,8 @@ updatePdef: { |self, p|
 		{ p[\userPattern].isNil } { Pbind(*pairs) }
 		{ pairs.isEmpty } { p[\userPattern] }
 		{ Pbindf(p[\userPattern], *pairs) };
+	// a playing Pdef switches to a new source on its next quant
+	Pdef(self.pdefKey(p[\name])).quant = p[\bar];
 	Pdef(self.pdefKey(p[\name]), Pchain(inner, Pbind(*base)));
 },
 
@@ -64,7 +69,7 @@ logPairing: { |self, p, what|
 // else `synth`, else the previous binding. Returns a result Event.
 definePattern: { |self, name, path, synth, infoJson, save = true|
 	var res = (name: name, ok: false, errors: List[], warnings: List[]);
-	var src, ev, pat, fixed, binding, err, p, wasPlaying, keys = Set[], logId = UniqueID.next;
+	var src, ev, pat, fixed, binding, err, p, wasPlaying, bar, keys = Set[], logId = UniqueID.next;
 	name = name.asSymbol;
 	synth = synth !? (_.asSymbol);
 	block { |break|
@@ -89,6 +94,7 @@ definePattern: { |self, name, path, synth, infoJson, save = true|
 			err = try {
 				var first = pat.asStream.next(Event.default);
 				if (first.notNil and: { first.keys.includes(\instrument) }) { fixed = first[\instrument].asSymbol };
+				if (first.notNil) { bar = first[\bar] };
 				binding = fixed ?? { synth } ?? { self.patterns[name] !? { |old| old[\synth] } };
 				if (binding.notNil and: { self.synths[binding].notNil }) {
 					var str = Pchain(pat, Pbind(\instrument, binding)).asStream;
@@ -108,10 +114,15 @@ definePattern: { |self, name, path, synth, infoJson, save = true|
 			res[\warnings].add("pattern sets \\instrument %, so synth % is ignored".format(fixed, synth))
 		};
 
+		if (bar.notNil and: { bar.isNumber.not or: { bar <= 0 } }) {
+			res[\warnings].add("\\bar must be a positive number of beats, got %; using 4".format(bar));
+			bar = nil;
+		};
 		wasPlaying = self.patternPlaying(name);
 		keys.remove(\instrument);
+		keys.remove(\bar);
 		p = (name: name, synth: binding, userPattern: pat, overrides: IdentityDictionary(),
-			keys: keys, fixed: fixed.notNil);
+			keys: keys, fixed: fixed.notNil, bar: bar ? 4);
 		p[\hash] = if (save) { self.saveSource(self.patternDir(name), "pattern.scd", src, infoJson) } { self.fileHash(path) };
 		self.patterns[name] = p;
 		if (save) { self.writePatternMeta(p) };
@@ -139,7 +150,7 @@ defaultPattern: { |self, name, synth|
 	name = name.asSymbol;
 	if (self.validName(name).not) { Error("invalid pattern name '%'".format(name)).throw };
 	if (e[\kind] == \fx) { Error("'%' is an fx and can't be played by a pattern".format(synth)).throw };
-	p = (name: name, synth: e[\name], overrides: IdentityDictionary(), keys: Set[], fixed: false);
+	p = (name: name, synth: e[\name], overrides: IdentityDictionary(), keys: Set[], fixed: false, bar: 4);
 	self.patternDefaults.keysValuesDo { |k, v| self.putOverride(p, k, v) };
 	self.patterns[name] = p;
 	self.updatePdef(p);
@@ -159,18 +170,34 @@ playPattern: { |self, name, synth|
 		if (self.patternPlaying(name)) { self.logPairing(p, \play) };
 	};
 	e = self.synthEntry(p[\synth]);
+	self.pendingStops.removeAt(p[\name]);    // a play cancels a stop waiting for its bar
 	if (self.patternPlaying(name).not) {
-		Pdef(self.pdefKey(p[\name])).play(TempoClock.default, quant: 1);
+		Pdef(self.pdefKey(p[\name])).play(TempoClock.default, quant: p[\bar]);
 		self.logPairing(p, \play);
 	};
 	(ok: true, name: p[\name], synth: p[\synth], warnings: self.keyCheck(p, e))
 },
 
-stopPattern: { |self, name|
-	var p = self.patternEntry(name);
-	if (self.patternPlaying(p[\name])) {
-		Pdef(self.pdefKey(p[\name])).stop;
-		self.logPairing(p, \stop);
+// waits for the next bar line unless `now`
+stopPattern: { |self, name, now = false|
+	var p = self.patternEntry(name), clock = TempoClock.default, token;
+	var stop = {
+		self.pendingStops.removeAt(p[\name]);
+		if (self.patternPlaying(p[\name])) {
+			Pdef(self.pdefKey(p[\name])).stop;
+			self.logPairing(self.patterns[p[\name]] ? p, \stop);
+		};
+	};
+	case
+	{ now } { stop.value }
+	{ self.patternPlaying(p[\name]) and: { self.pendingStops[p[\name]].isNil } } {
+		token = UniqueID.next;
+		self.pendingStops[p[\name]] = token;
+		// a hair before the bar line, so that bar's first note doesn't play
+		clock.schedAbs(clock.nextTimeOnGrid(p[\bar]) - 0.001, {
+			if (self.pendingStops[p[\name]] == token) { stop.value };
+			nil
+		});
 	};
 	(ok: true)
 },

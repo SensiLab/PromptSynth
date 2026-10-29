@@ -4,7 +4,8 @@
 // keys set at runtime; listed so assertKeys can check them too
 dataKeys: #[server, synths, patterns, channels, subscribers, oscDefs, masterBus, inputBus,
 	inputGroup, sourceGroup, testGroup, masterGroup, masterSynth, inputSynth, treeFunc, recPath,
-	isReady, commands, stateToken, startedAt, watched, watchMtimes, watchRoutine],
+	isReady, commands, stateToken, startedAt, watched, watchMtimes, watchRoutine,
+	pendingStops],
 
 // Event methods win over keys (e.g. ps.play would call Event:play), so refuse clashing names
 assertKeys: { |self|

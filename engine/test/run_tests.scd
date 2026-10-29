@@ -238,11 +238,26 @@ tests = {
 	check.("bad pattern rejected", truthy.(res["ok"]).not, res);
 	res = request.('/ps/pattern/get', \walk);
 	check.("pattern get", res["synth"] == "perc" and: { truthy.(res["playing"]) }, res);
+	// just after a bar line, so the next one is a whole bar away
+	(TempoClock.default.timeToNextBeat(4) / TempoClock.default.tempo + 0.05).wait;
 	send.('/ps/pattern/stop', \walk);
+	check.("stop waits for the bar line", ps.patternPlaying(\walk) and: { ps.pendingStops[\walk].notNil });
+	(TempoClock.default.timeToNextBeat(4) / TempoClock.default.tempo + 0.1).wait;
+	check.("stopped on the bar line", ps.patternPlaying(\walk).not);
 	check.("pattern stop event", eventSeen.("pattern", \walk, 0));
 	check.("stop logged", lines.(lib +/+ "patterns/walk/pairings.jsonl").last.parseJSON["event"] == "stop");
 	request.('/ps/pattern/play', \walk, \pad);
 	send.('/ps/pattern/stop', \walk);
+	request.('/ps/pattern/play', \walk);
+	check.("play cancels a waiting stop", ps.pendingStops[\walk].isNil);
+	(TempoClock.default.timeToNextBeat(4) / TempoClock.default.tempo + 0.1).wait;
+	check.("still playing after the cancelled stop", ps.patternPlaying(\walk));
+	send.('/ps/pattern/stop', \walk);
+	res = request.('/ps/pattern/define', \barPat, fx.("pattern_bar.scd"), \pad);
+	check.("pattern sets its bar", truthy.(res["ok"]) and: { res["warnings"].isEmpty } and: {
+		res["keys"].includesEqual("bar").not } and: { ps.patterns[\barPat][\bar] == 6 } and: {
+		Pdef(ps.pdefKey(\barPat)).quant == 6 }, res);
+	check.("bar defaults to 4", ps.patterns[\walk][\bar] == 4 and: { Pdef(ps.pdefKey(\walk)).quant == 4 });
 
 	"-- channels and mappings".postln;
 	res = request.('/ps/channel/list');
