@@ -65,6 +65,10 @@ SC's own words: "it's SC!"
 - **Never read input inside a synth.** No MouseX/MouseY/MouseButton/KeyState in a synth or fx.
   Expose a param; a control channel is mapped onto it. The engine rejects input UGens.
   Steph: "always do this. never refer to mouse inside a synth".
+- **Every synth has envelope params** (2026-11-01): sustained synths `attack`, `decay`, `sustain`,
+  `release`; one-shots `attack` and `decay`. fx are exempt. A layer can add its own (e.g.
+  `padAttack`), but the main envelope always uses these names. Steph: "all synths should have env
+  parametes. so always attack etc."
 - **History records topology and deliberate moves, not input.** Param sets via the API are
   recorded (settled value); mouse, LFOs, random values are not.
 - **Versions are content-hashed** (sha1, first 12 hex). Returning to old source isn't stored

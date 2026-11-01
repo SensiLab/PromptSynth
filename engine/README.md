@@ -44,6 +44,8 @@ A synth file evaluates to either:
     `Out.kr` or more than 2 channels is rejected.
   - With a `gate` arg it is **sustained** (released with gate 0, so it must free itself
     with `doneAction: 2`). Without one it is **one-shot** and must free itself.
+  - **Envelope params, always**: a sustained synth has `attack`, `decay`, `sustain` and `release`;
+    a one-shot has `attack` and `decay`. fx are exempt. Not enforced by the engine.
   - Put param ranges in metadata: `SynthDef(\name, {...}, metadata: (specs: (cutoff: [100, 8000, \exp])))`.
     Missing specs are guessed from the name (freq, amp, pan, attack...) or the default value.
   - **No input inside a synth**: `MouseX`, `MouseY`, `MouseButton` and `KeyState` are rejected.
