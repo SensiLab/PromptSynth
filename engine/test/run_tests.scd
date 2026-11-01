@@ -161,6 +161,11 @@ tests = {
 	check.("history records the return", lines.(lib +/+ "synths/pad/history.jsonl").size == 3);
 	check.("removed param value pruned", request.('/ps/param/get', \pad)["values"]["detune"].isNil);
 	define.(\pad, "pad_v2.scd");
+	define.(\pad, "pad_v3.scd");   // detune's default 0.01 -> 0.03
+	res = request.('/ps/param/get', \pad)["values"];
+	check.("changed default replaces the live value", res["detune"].asFloat.equalWithPrecision(0.03), res);
+	check.("unchanged default keeps the live value", res["cutoff"].asFloat == 8000, res);
+	define.(\pad, "pad_v2.scd");
 
 	send.('/ps/synth/release', \pad);
 	1.wait;
@@ -321,6 +326,15 @@ tests = {
 	res = request.('/ps/param/get', \pad);
 	check.("restore brings back values and mappings", res["values"]["cutoff"].asFloat == 500 and: {
 		res["mappings"]["amp"]["channel"] == "fader2" } and: { res["mappings"]["cutoff"]["channel"] == "mouseY" }, res);
+	check.("state file has defaults", v["synths"]["pad"]["defaults"]["cutoff"].asFloat == 1200, v["synths"]["pad"]["defaults"]);
+	request.('/ps/unmap', \pad, \cutoff);
+	send.('/ps/param/set', \pad, \cutoff, 3000);
+	v["synths"]["pad"]["defaults"]["cutoff"] = 999;   // as if saved before the code's default changed
+	File.use(ps.stateFile, "w", { |f| f.write(ps.jsonEncode(v)) });
+	ps.restoreState;
+	0.3.wait;
+	check.("restore skips a value saved under an old default", request.('/ps/param/get', \pad)["values"]["cutoff"].asFloat == 3000);
+	ps.saveState;
 
 	"-- recording".postln;
 	res = request.('/ps/rec/start', \walk, 1);

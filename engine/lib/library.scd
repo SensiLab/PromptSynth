@@ -137,11 +137,12 @@ saveStateSoon: { |self|
 saveState: { |self|
 	var synths = ();
 	self.synths.keysValuesDo { |name, e|
-		var mappings = ();
+		var mappings = (), defaults = ();
+		e[\params].do { |p| if (p[\rate] != \array) { defaults[p[\name]] = p[\default] } };
 		e[\mappings].keysValuesDo { |param, m|
 			mappings[param] = (channel: m[\channel], min: m[\min], max: m[\max], warp: m[\warp])
 		};
-		synths[name] = (values: e[\paramValues], mappings: mappings);
+		synths[name] = (values: e[\paramValues], defaults: defaults, mappings: mappings);
 	};
 	self.writeFile(self.stateFile, self.jsonEncode((master: self.config[\masterAmp],
 		tempo: TempoClock.default.tempo * 60, synths: synths, saved: self.isoNow)));
@@ -156,9 +157,13 @@ restoreState: { |self|
 		(st["synths"] ?? { () }).keysValuesDo { |name, s|
 			var e = self.synths[name.asSymbol];
 			if (e.notNil) {
+				// a value saved under a default the code has since changed is skipped: the code wins
 				(s["values"] ?? { () }).keysValuesDo { |k, v|
 					var p = e[\params].detect { |p| p[\name] == k.asSymbol };
-					if (p.notNil and: { p[\rate] != \array }) { try { self.setParam(name, k, num.(v)) } };
+					var saved = s["defaults"] !? { |d| d[k] };
+					if (p.notNil and: { p[\rate] != \array } and: {
+						saved.isNil or: { num.(saved).equalWithPrecision(p[\default], 1e-9, 1e-6) }
+					}) { try { self.setParam(name, k, num.(v)) } };
 				};
 				(s["mappings"] ?? { () }).keysValuesDo { |k, m|
 					var warp = m["warp"].asString;

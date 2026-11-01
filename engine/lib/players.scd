@@ -36,10 +36,13 @@ registerEntry: { |self, def, kind, source, params, channels, hasGate|
 	e[\paramValues].keys.copy.do { |k|
 		if (params.any { |p| p[\name] == k }.not) { e[\paramValues].removeAt(k) }
 	};
+	// a param keeps its live value across versions, unless its default changed in the code:
+	// then the code wins and the new default is used
 	params.do { |p|
 		var k = p[\name], v = e[\paramValues][k];
+		var oldDefault = old !? { old[\params].detect { |q| q[\name] == k } } !? { |q| q[\default] };
 		if (p[\rate] != \array) {
-			v = if (v.isNil) { p[\default] } { p[\spec].constrain(v) };
+			v = if (v.isNil or: { oldDefault.notNil and: { oldDefault != p[\default] } }) { p[\default] } { p[\spec].constrain(v) };
 			e[\paramValues][k] = v;
 			if (p[\rate] == \control) {
 				e[\buses][k] = e[\buses][k] ?? { Bus.control(self.server, 1) };

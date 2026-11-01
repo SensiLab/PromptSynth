@@ -163,6 +163,10 @@ Returning to an earlier source gives the same hash: it isn't stored twice, but t
 logged in `history.jsonl`. All synths and patterns load at boot (without the smoke test), then
 `_state.json` restores settings and mappings. Nothing starts playing on its own.
 
+A param's value carries over to new versions, reloads and restarts, unless its default changed
+in the code: then the new default is used (the code wins). `_state.json` records the defaults
+values were saved under, so this holds across restarts too.
+
 ## OSC API
 
 Send to sclang (default port 57120). Strings may be sent as OSC strings or symbols.
