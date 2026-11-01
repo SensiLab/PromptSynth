@@ -3,11 +3,12 @@
 // settle lower and sooner (ring), bright tilts the balance towards them. The whisper is soft
 // band-passed breath noise that swells over the first half of the attack and is gone by about
 // 2 x attack, while the glass blooms in late under it (slow-start curve): air first, then glass.
-SynthDef(\glass, { |out = 0, gate = 1, freq = 440, amp = 0.2, attack = 0.25, release = 2.5,
+// Envelope: attack, then decay to sustain (1 = no dip), release at gate off.
+SynthDef(\glass, { |out = 0, gate = 1, freq = 440, amp = 0.2, attack = 0.25, decay = 0.3, sustain = 1, release = 2.5,
 	ring = 3, bright = 0.6, shimmer = 0.4, whisper = 0.5, whisperFreq = 4000, whisperWidth = 0.6,
 	width = 0.6, pan = 0|
 	var ratios = [1, 2.32, 4.25, 6.63, 9.38];
-	var env = EnvGen.kr(Env.asr(attack, 1, release, [4, -4]), gate, doneAction: 2);
+	var env = EnvGen.kr(Env([0, 1, sustain, 0], [attack, decay, release], [4, -4, -4], releaseNode: 2), gate, doneAction: 2);
 	var partials = ratios.collect { |r, i|
 		var f = (freq * r).clip(20, 18000), ph = Rand(0, 2pi);
 		var level = (bright ** i) * EnvGen.kr(Env([0, 1, 0.6 ** i], [attack, ring / (i + 1)], [4, -3]));
@@ -20,6 +21,8 @@ SynthDef(\glass, { |out = 0, gate = 1, freq = 440, amp = 0.2, attack = 0.25, rel
 }, metadata: (specs: (
 	freq: [30, 4000, \exp, 0, 440, "Hz"],
 	attack: [0.01, 4, \exp, 0, 0.25, "s"],
+	decay: [0.01, 10, \exp, 0, 0.3, "s"],
+	sustain: [0, 1, \lin, 0, 1],
 	release: [0.05, 10, \exp, 0, 2.5, "s"],
 	ring: [0.2, 10, \exp, 0, 3, "s"],
 	bright: [0, 1],

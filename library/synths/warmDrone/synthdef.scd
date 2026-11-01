@@ -9,20 +9,20 @@
 // longer, upper modes thin out, and a body mode an octave below fades in. 0 is the solid bar exactly.
 // Vibrato (vibDepth semitones at vibRate) on the saws and sub only after gate off, fading in over 0.1 s.
 // body scales the warm sound (everything but the wood knock); wood scales the knock.
-// Envelope: rises over attack, falls to silence over decay, release fades whatever is left at gate off.
+// Envelope: rises over attack, falls to sustain over decay (0 = silence), release fades whatever is left at gate off.
 SynthDef(\warmDrone, { |out = 0, gate = 1, freq = 73.42, amp = 0.25, cutoff = 420, res = 0.08,
-	detune = 0.2, drift = 0.08, sub = 0.7, width = 1, attack = 0.02, decay = 2, release = 0.3,
+	detune = 0.2, drift = 0.08, sub = 0.7, width = 1, attack = 0.02, decay = 2, sustain = 0, release = 0.3,
 	air = 0.25, airLo = 8000, airHi = 12000, airSweep = 0.04, airRate = 0.15, airDensity = 6,
 	phaseMix = 0.35, phaseRate = 0.06, phaseFreq = 180, pdDrive = 1.2, pdFeedback = 0.7, pdMove = 0.4,
 	pdRate = 0.1, pdAmount = 1, keytrack = 1, pan = 0, wood = 0.35, woodTune = 2, woodDecay = 0.15, woodHollow = 0,
 	vibDepth = 0.2, vibRate = 5, body = 1|
 	var n = 6;
-	var env = EnvGen.kr(Env([0, 1, 0, 0], [attack, decay, release], \sin, releaseNode: 2), gate, doneAction: 2);
+	var env = EnvGen.kr(Env([0, 1, sustain, 0], [attack, decay, release], \sin, releaseNode: 2), gate, doneAction: 2);
 	var vib = (SinOsc.kr(vibRate) * vibDepth * EnvGen.kr(Env.asr(0.1, 1, 0.01), 1 - gate)).midiratio;
 	var voices = Array.fill(n, { |i|
 		var spread = (i / (n - 1) * 2 - 1) * detune;   // semitones either side
 		var f = freq * vib * (spread + LFNoise2.kr(drift * Rand(0.5, 1.5), 0.03)).midiratio;
-		VarSaw.ar(f, Rand(0, 1), LFNoise2.kr(drift * Rand(0.5, 1.5)).range(0.3, 0.6))
+		VarSaw.ar(f, Rand(0, 1) , LFNoise2.kr(drift * Rand(0.5, 1.5)).range(0.3, 0.6))
 	});
 	var sig = Splay.ar(voices, width, center: pan) * 0.35;
 	// cutoff is set for D2 (73.42 Hz); keytrack 1 moves it an octave per octave of pitch
@@ -68,6 +68,7 @@ SynthDef(\warmDrone, { |out = 0, gate = 1, freq = 73.42, amp = 0.25, cutoff = 42
 	width: [0, 1],
 	attack: [0.01, 20, \exp, 0, 0.02, "s"],
 	decay: [0.01, 20, \exp, 0, 2, "s"],
+	sustain: [0, 1, \lin, 0, 0],
 	release: [0.01, 20, \exp, 0, 0.3, "s"],
 	air: [0, 1],
 	airLo: [4000, 18000, \exp, 0, 8000, "Hz"],
