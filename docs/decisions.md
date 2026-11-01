@@ -25,6 +25,13 @@ sounded good. Audio can be recorded as samples.
   `claudePath` goes in `engine/config.scd`.
 - 2026-10-28: **per-synth meters** wanted, plus per-synth freq scope and spectrum graphs later.
   Every synth gets its own channel strip (submix bus) before master.
+- 2026-11-01: **the terminal workflow is primary.** Steph prompts Claude Code in a terminal;
+  Claude edits library files and drives the engine with `tools/psosc.mjs`. **MCP, `claude -p`
+  from sclang and the UI prompt box are parked**, not dropped: pick them up only if prompting
+  from the SC window without a terminal becomes wanted. The 2026-10-28 generation entries above
+  describe that parked path. Steph: "enjoying the setup as is".
+- 2026-11-01: **the UI is optional.** UI v1 stays as it is; no further UI work is planned unless
+  Steph asks. Steph: "not even sure i need a ui".
 - 2026-10-29: **one main window**; analysis (scopes, spectra) in a separate window.
 - 2026-10-29: the **mouse channel reads the whole screen**; the UI doesn't capture the mouse.
 - 2026-10-29: **mappings are always made in code** (OSC / Claude), never in the UI.

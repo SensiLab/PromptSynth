@@ -1,6 +1,8 @@
 # Plan
 
-Status 2026-10-29. UI v1 is up ahead of phase 2 (built on what exists); phase 2 is next.
+Status 2026-11-01. The terminal workflow (Claude Code + `tools/psosc.mjs`) is primary. MCP and
+generation from sclang are parked, and the UI is optional (see decisions, 2026-11-01). The
+parts of phase 2 that don't need MCP (channel strips, the smoke-before-add fix) come first.
 
 ## Done
 
@@ -102,7 +104,9 @@ the UI and the move log are built on top of it.
 ## Phases
 
 1. **Phase 2: engine 0.3 + MCP + generation from the terminal.**
-   - Channel strips with meters, gain and mute (engine side, tested).
+   - Next, without MCP: channel strips with meters, gain and mute (engine side, tested).
+   - **Parked 2026-11-01** (the rest of this phase): pick up only if prompting from the SC
+     window is wanted.
    - Define from a source string.
    - `/ps/event/gen` and `/ps/event/meter`.
    - `claudePath` in config.
@@ -139,7 +143,7 @@ the UI and the move log are built on top of it.
 
 None blocking phase 2. Notes to pick up:
 
-- **Launching `claude -p` from sclang may stall the clock.** `unixCmdGetStdOut` blocked for
+- **Launching `claude -p` from sclang may stall the clock** (parked with MCP). `unixCmdGetStdOut` blocked for
   ~0.6–1.1 s per call (measured in the sandbox). Measure `unixCmd` (async) with patterns
   playing before phase 2 relies on it; if it blocks too, launch from somewhere else.
 - **A synth that compiles but fails the smoke test still reaches the server.** `runDefine`
