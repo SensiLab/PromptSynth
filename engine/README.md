@@ -117,6 +117,14 @@ it again replaces it; it reopens itself after an engine restart and survives Cmd
   first) from `/ps/event/*`, plus a warning when the pattern clock wakes more than 150 ms late (the
   interpreter was blocked). A **master meter** of the hardware outs, after the limiter.
 - **Analysis window** (button): freq scope and scope of the outs.
+- **History player:** the selected item's pairings (which pattern version played on which synth
+  version, oldest first). Click a step, or prev / next, to load and play it: old versions load in
+  memory only (no new version, no history line), and the pattern swaps on its bar line. ▶ marks
+  the step that's playing. **latest** puts the newest versions back with the values
+  and mappings they had when the player started (closing the UI does too). While it plays,
+  nothing is written to `pairings.jsonl` or `_state.json`. Steps whose version was saved over
+  (the watcher reloads saves without storing them) show as not stored and are skipped.
+- **Header:** CPU and node count; **mute** mutes the server's output volume (not saved).
 
 It shows no params and no control channel values: the code is the interface. It uses the
 engine's public functions and subscribes to its events. Nothing in it may block, since the

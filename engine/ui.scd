@@ -5,6 +5,10 @@
 // Main window: synths and patterns with play/stop (button or double-click), the selected one's
 // trail (its versions and what each changed, from history.jsonl), an event log (newest first)
 // and a master meter. "analysis" opens a second window with a freq scope and scope of the output.
+// History player: the selected item's pairings (which pattern version played on which synth
+// version, oldest first). Click a step (or prev / next) to load and play it; "latest" puts the
+// latest versions back with the settings they had. ▶ marks the step that's playing.
+// "mute" mutes the server's output volume (not saved).
 //
 // It uses the engine's public functions and listens to /ps/event/* like any subscriber. It shows
 // no params and no control channel values: the code is the interface. Nothing in here may block
@@ -16,6 +20,7 @@ if (ps.isNil or: { ps.isReady != true }) {
 	"[ps-ui] the engine isn't ready: evaluate engine/main.scd first".postln;
 } {
 	var win, header, synthList, patternList, trail, logView, meters, analysis, poller, probe, meterSynth;
+	var historyList, historyLabel, steps = [], stepIndex, hidden = 0, updating = false, showHistory, stepLines, loadStep, toLatest;
 	var status, selected, trailHash, logLines = List[], oscDefs = List[], lastStall = 0, closed = false;
 	var font = Font.monospace(12), small = Font.monospace(11);
 	var addLog, label, setItems, refresh, showTrail, toggle, startMeter, startProbe, treeFunc, openAnalysis, close;
@@ -33,13 +38,17 @@ if (ps.isNil or: { ps.isReady != true }) {
 		(if (playing) { "▶ " } { "  " }) ++ n ++ String.fill((18 - n.size).max(1), $ ) ++ rest
 	};
 
-	// only touch a list when its contents change, so the selection stays put
-	setItems = { |view, items, playing|
-		var v = view.value;
+	// only touch a list when its contents change; then put the selection back from `selected`
+	// (Qt selects row 0 when items are replaced, which would show two selections)
+	// Qt fires a list's action when the code changes its items or value too: `updating` tells the
+	// actions to ignore those
+	setItems = { |view, items, playing, kind, names|
 		if (items != view.items) {
+			updating = true;
 			view.items = items;
 			view.colors = playing.collect { |p| if (p) { Color(0.78, 0.93, 0.78) } { Color.white } };
-			if (v.notNil and: { v < items.size }) { view.value = v };
+			view.value = if (selected.notNil and: { selected[0] == kind }) { names.indexOf(selected[1]) };
+			updating = false;
 		}
 	};
 
@@ -59,10 +68,16 @@ if (ps.isNil or: { ps.isReady != true }) {
 		} {
 			st = ps.statusInfo;
 			status = st;
-			header.string = "engine %    server %    CPU %    % BPM    master %".format(st[\engine],
-				if (st[\server]) { "running" } { "NOT RUNNING" }, st[\cpu].asString ++ "%", st[\tempo].round(0.1), st[\masterAmp]);
-			setItems.(synthList, st[\synths].collect { |s| label.(s[\playing], s[\name], s[\kind]) }, st[\synths].collect(_[\playing]));
-			setItems.(patternList, st[\patterns].collect { |p| label.(p[\playing], p[\name], "→ " ++ p[\synth]) }, st[\patterns].collect(_[\playing]));
+			header.string = "engine %    server %    CPU %    nodes %    % BPM    master %%".format(st[\engine],
+				if (st[\server]) { "running" } { "NOT RUNNING" }, st[\cpu].asString ++ "%", st[\numSynths],
+				st[\tempo].round(0.1), st[\masterAmp], if (ps.server.volume.isMuted) { " (muted)" } { "" });
+			historyLabel.string = if (ps.historyActive) {
+				"playing history: step % of %".format((stepIndex ? 0) + 1, steps.size)
+			} { "latest versions" } ++ if (hidden > 0) { "    (% saved-over steps hidden: not stored)".format(hidden) } { "" };
+			setItems.(synthList, st[\synths].collect { |s| label.(s[\playing], s[\name], s[\kind]) }, st[\synths].collect(_[\playing]),
+				\synth, st[\synths].collect(_[\name]));
+			setItems.(patternList, st[\patterns].collect { |p| label.(p[\playing], p[\name], "→ " ++ p[\synth]) }, st[\patterns].collect(_[\playing]),
+				\pattern, st[\patterns].collect(_[\name]));
 			// a new version (or a watched save) of the selected item: reread its trail
 			if (selected.notNil) {
 				entry = st[if (selected[0] == \synth) { \synths } { \patterns }].detect { |e| e[\name] == selected[1] };
@@ -102,10 +117,75 @@ if (ps.isNil or: { ps.isReady != true }) {
 		trail.string = "% %  (% versions)\n\n".format(kind, name, lines.size) ++ out.join("\n");
 	};
 
+	// the selected item's pairings, read once on selection: only steps whose two versions can both
+	// load (saved-over ones were never stored), then a "now" row for the current files.
+	showHistory = {
+		var all = if (selected.notNil) { ps.historySteps(selected[0], selected[1]) } { [] };
+		if (all.isNil or: { all.notEmpty and: { all[0][\playable].isNil } }) {
+			addLog.("history: this engine is older than ui.scd; restart it (tools/start-engine.sh), then reopen the UI");
+			all = [];
+		};
+		steps = all.select(_[\playable]);
+		// hiding unstored steps can leave the same versions twice in a row: keep one
+		steps = steps.select { |s, i| i == 0 or: { [\pattern, \patternHash, \synthHash].any { |k| steps[i - 1][k] != s[k] } } };
+		hidden = all.size - steps.size;
+		if (steps.isEmpty or: { steps.last[\current].not }) {
+			steps = steps ++ [(now: true, current: true, pattern: all.last !? (_[\pattern]), time: "")];
+		};
+		steps.do { |s| s[\key] = if (s[\now] == true) { "now" } { [s[\pattern], s[\patternHash], s[\synthHash]].join(":") } };
+		// not playing history: what plays is the current files, the last row, so start there and
+		// let prev go back in time
+		stepIndex = if (ps.historyActive.not) { steps.size - 1 };
+		updating = true;
+		historyList.items = stepLines.();
+		historyList.value = stepIndex;
+		updating = false;
+	};
+	stepLines = {
+		steps.collect { |s, i|
+			var marks = if (i == stepIndex) { "▶" } { " " };
+			if (s[\now] == true) { marks ++ "  now: the current files" } {
+				"%  %  % %  on % %%".format(marks, s[\time].drop(5).keep(14).replace("T", " "),
+					s[\pattern], s[\patternHash], s[\synth], s[\synthHash], if (s[\current]) { "   (now)" } { "" })
+			}
+		}
+	};
+
+	loadStep = { |i|
+		var s = steps[i];
+		if (s.notNil) {
+			stepIndex = i;
+			{
+				var res = if (s[\current]) { ps.historyEnd; nil } { ps.historyLoad(s) };
+				if (s[\current] and: { s[\pattern].notNil } and: { ps.patternPlaying(s[\pattern]).not }) {
+					try { ps.playPattern(s[\pattern]) }
+				};
+				{
+					if (closed.not) {
+						updating = true;
+						historyList.items = stepLines.();
+						historyList.value = i;
+						updating = false;
+					};
+					addLog.(if (res.isNil) { "history: now (the current files)" } {
+						"history step %: pattern %, synth %".format(i + 1, res[\pattern], res[\synth]) });
+				}.defer;
+			}.fork(SystemClock);
+		}
+	};
+
+	toLatest = {
+		{ ps.historyEnd; { if (closed.not) { showHistory.() } }.defer }.fork(SystemClock)
+	};
+
+	// with a history step loaded, play / stop is that step's pattern; otherwise the selected item
 	toggle = {
 		var kind, name, entry;
 		if (selected.notNil and: { status.notNil }) {
 			#kind, name = selected;
+			if (stepIndex.notNil and: { steps[stepIndex] !? (_[\pattern]) !? { |pn| ps.patterns[pn].notNil } ? false }) {
+				kind = \pattern; name = steps[stepIndex][\pattern];
+			};
 			try {
 				if (kind == \synth) {
 					entry = status[\synths].detect { |s| s[\name] == name };
@@ -157,6 +237,7 @@ if (ps.isNil or: { ps.isReady != true }) {
 	close = {
 		if (closed.not) {
 			closed = true;
+			if (ps.historyActive) { { ps.historyEnd }.fork(SystemClock) };   // don't leave old versions loaded
 			poller.stop;
 			probe.stop;
 			if (ps.server.serverRunning) { meterSynth !? (_.free) };
@@ -174,6 +255,9 @@ if (ps.isNil or: { ps.isReady != true }) {
 	synthList = ListView().font_(font).fixedWidth_(330).selectionMode_(\single);
 	patternList = ListView().font_(font).fixedWidth_(330).selectionMode_(\single);
 	trail = TextView().font_(small).editable_(false);
+	historyList = ListView().font_(small).selectionMode_(\single)
+		.action_({ |v| if (updating.not and: { v.value.notNil } and: { v.value != stepIndex }) { loadStep.(v.value) } });
+	historyLabel = StaticText().font_(small).string_("latest versions");
 	logView = TextView().font_(small).editable_(false).fixedHeight_(190);
 	meters = 2.collect { LevelIndicator().drawsPeak_(true).warning_(0.8).critical_(0.95).fixedWidth_(16).fixedHeight_(190) };
 
@@ -181,10 +265,14 @@ if (ps.isNil or: { ps.isReady != true }) {
 		var view = pair[0], kind = pair[1], other = if (kind == \synth) { patternList } { synthList };
 		view.action = { |v|
 			var names = status !? { status[if (kind == \synth) { \synths } { \patterns }].collect(_[\name]) };
-			if (v.value.notNil and: { names.notNil } and: { v.value < names.size }) {
+			if (updating.not and: { v.value.notNil } and: { names.notNil } and: { v.value < names.size }
+				and: { selected != [kind, names[v.value]] }) {
+				updating = true;
 				other.value = nil;
+				updating = false;
 				selected = [kind, names[v.value]];
 				showTrail.();
+				showHistory.();
 			};
 		};
 		view.mouseDownAction = { |v, x, y, mod, button, clicks| if (clicks == 2) { toggle.() }; nil };
@@ -193,11 +281,19 @@ if (ps.isNil or: { ps.isReady != true }) {
 	win.layout = VLayout(
 		HLayout(header, nil,
 			Button().states_([["play / stop"]]).action_({ toggle.() }),
+			Button().states_([["mute"], ["unmute"]]).value_(if (ps.server.volume.isMuted) { 1 } { 0 })
+				.action_({ |b| if (b.value == 1) { ps.server.volume.mute } { ps.server.volume.unmute } }),
 			Button().states_([["panic"]]).action_({ ps.panic }),
 			Button().states_([["analysis"]]).action_({ openAnalysis.() })),
 		HLayout(
 			VLayout(StaticText().string_("synths"), synthList, StaticText().string_("patterns"), patternList),
-			VLayout(StaticText().string_("trail"), trail)),
+			VLayout(StaticText().string_("trail"), [trail, stretch: 1],
+				StaticText().string_("history (click a step to play it)"), [historyList, stretch: 2],
+				HLayout(
+					Button().states_([["◀ prev"]]).action_({ loadStep.(((stepIndex ? steps.size) - 1).max(0)) }),
+					Button().states_([["next ▶"]]).action_({ loadStep.(((stepIndex ? -1) + 1).min(steps.size - 1)) }),
+					Button().states_([["latest"]]).action_({ toLatest.() }),
+					historyLabel, nil))),
 		HLayout(VLayout(StaticText().string_("log"), logView), *meters)
 	);
 	win.onClose = { close.() };

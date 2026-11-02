@@ -336,6 +336,40 @@ tests = {
 	check.("restore skips a value saved under an old default", request.('/ps/param/get', \pad)["values"]["cutoff"].asFloat == 3000);
 	ps.saveState;
 
+	"-- history player".postln;
+	define.(\pad, "pad_v2.scd");   // the latest has detune; v1 (padHash) doesn't
+	request.('/ps/pattern/play', \walk);   // so walk's last pairing is the current versions
+	v = ps.historySteps(\pattern, \walk);
+	check.("history steps from pairings", v.size > 0 and: { v[0][\synth] == \pad } and: { v.every { |s| s[\patternStored] } }, v);
+	check.("the last step is the current files", v.last[\current] and: { v.last[\playable] }, v.last);
+	request.('/ps/map', \pad, \detune, \mouseX, 0, 0.05);
+	1.5.wait;   // let that mapping's settings save happen first
+	res = (pairings: lines.(ps.patternDir(\walk) +/+ "pairings.jsonl").size,
+		history: lines.(ps.synthDir(\pad) +/+ "history.jsonl").size, state: File.mtime(ps.stateFile));
+	// pad v1 has no detune param
+	path = (time: "", pattern: \walk, patternHash: ps.patterns[\walk][\hash], synth: \pad, synthHash: padHash);
+	path[\patternFile] = ps.versionFile(\pattern, \walk, path[\patternHash]);
+	path[\synthFile] = ps.versionFile(\synth, \pad, padHash);
+	path[\patternStored] = File.exists(path[\patternFile]);
+	path[\synthStored] = File.exists(path[\synthFile]);
+	ps.historyLoad(path);
+	check.("history loads the old synth version", ps.synths[\pad][\hash] == padHash, ps.synths[\pad][\hash]);
+	check.("history plays the pattern", ps.patternPlaying(\walk));
+	ps.setParam(\pad, \cutoff, 2222);   // would save settings, but not while the player runs
+	1.5.wait;
+	check.("watcher leaves the old version alone", ps.synths[\pad][\hash] == padHash);
+	check.("history writes no pairings or versions",
+		lines.(ps.patternDir(\walk) +/+ "pairings.jsonl").size == res[\pairings] and: {
+		lines.(ps.synthDir(\pad) +/+ "history.jsonl").size == res[\history] });
+	check.("history doesn't save settings", File.mtime(ps.stateFile) == res[\state]);
+	check.("old version drops the missing param's mapping", ps.synths[\pad][\mappings][\detune].isNil);
+	ps.historyEnd;
+	check.("history end puts the latest back", ps.synths[\pad][\hash] == ps.fileHash(ps.synthDir(\pad) +/+ "synthdef.scd"));
+	check.("history end restores mappings", ps.synths[\pad][\mappings][\detune].notNil and: { ps.historyActive.not });
+	request.('/ps/unmap', \pad, \detune);
+	send.('/ps/pattern/stop', \walk);
+	ps.stopPattern(\walk, true);
+
 	"-- recording".postln;
 	res = request.('/ps/rec/start', \walk, 1);
 	path = res["path"];

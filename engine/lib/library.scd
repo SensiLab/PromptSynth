@@ -130,8 +130,11 @@ stateFile: { |self| self.libraryDir +/+ "_state.json" },
 
 saveStateSoon: { |self|
 	var token = UniqueID.next;
-	self.stateToken = token;
-	SystemClock.sched(1, { if (self.stateToken == token) { self.saveState }; nil });
+	// not while the history player runs: it restores settings when it ends
+	if (self.historyActive != true) {
+		self.stateToken = token;
+		SystemClock.sched(1, { if (self.stateToken == token and: { self.historyActive != true }) { self.saveState }; nil });
+	}
 },
 
 saveState: { |self|

@@ -13,7 +13,7 @@ var ps;
 
 ps = (root: root);
 ps.config = (root +/+ "config.scd").load;
-["util", "validate", "library", "players", "patterns", "channels", "recorder", "watch", "osc", "core"].do { |mod|
+["util", "validate", "library", "players", "patterns", "channels", "recorder", "watch", "history", "osc", "core"].do { |mod|
 	ps.putAll((root +/+ "lib" +/+ mod ++ ".scd").load)
 };
 

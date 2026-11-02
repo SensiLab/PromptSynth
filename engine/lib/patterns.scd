@@ -57,7 +57,7 @@ updatePdef: { |self, p|
 
 logPairing: { |self, p, what|
 	var e = self.synths[p[\synth]];
-	if (p[\hash].notNil) {
+	if (p[\hash].notNil and: { self.historyActive != true }) {
 		self.appendLine(self.patternDir(p[\name]) +/+ "pairings.jsonl", self.jsonEncode((time: self.isoNow,
 			event: what, synth: p[\synth], synthHash: e !? { e[\hash] }, patternHash: p[\hash])));
 	};
