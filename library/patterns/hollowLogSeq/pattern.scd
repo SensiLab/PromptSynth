@@ -15,7 +15,7 @@ var notes = bars.collect { |c| (c ++ c.drop(2)).dup(2) }.flat
 	.collect { |n, i| if (i % 8 == 0) { n } { n + [0, 12, -12].wrapAt(i) } };
 Pbind(
 	\instrument, \hollowLog,
-	\midinote, Pseq(notes, inf),
+	\note, Pseq(notes, inf) - 60,   // MIDI numbers above; \note is midinote - 60 at the default \octave 5
 	\dur, 0.25,
 	\amp, 0.25,
 	\bar, 8,

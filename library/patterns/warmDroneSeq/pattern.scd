@@ -5,9 +5,9 @@
 var arp = ([45, 47, 49, 51, 53, 55] +.x [0, 12, 24] ++ [81]).sort.mirror1;
 Pbind(
 	\instrument, \warmDrone,
-	\midinote, Pseq([0, 3, 6, 9, 6, 3].collect { |root|
+	\note, Pseq([0, 3, 6, 9, 6, 3].collect { |root|
 		Pseq(arp + root, 3).collect { |n| if ((n - root - 45) % 12 == 0) { [n, n - 24] } { n } }
-	}, inf),
+	}, inf) - 60,   // MIDI numbers above; \note is midinote - 60 at the default \octave 5
 	\pan, Pwhite(-0.7, 0.7),
 	\dur, 0.25,
 	\legato, 1.5,

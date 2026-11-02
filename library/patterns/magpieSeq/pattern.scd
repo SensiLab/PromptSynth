@@ -9,7 +9,7 @@ Pbind(
 	// 	[62, 3], [67, 3], [\rest, 2],
 	// 	[65, 4], [\rest, 4]
 	// ], inf),
-	\midinote, 62,
+	\note, 2,   // D (midinote 62 at the default \octave 5)
 	\dur, 2,
 	\pan, Pwhite(-0.8, 0.8),
 	\distance, Pwhite(0.05, 0.6),

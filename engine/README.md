@@ -75,7 +75,9 @@ Validation stages, reported as `stage` on failure:
 
 ## Patterns
 
-A pattern file evaluates to a Pattern, e.g. `Pbind(\midinote, Pseq([50, 54, 57], inf), \dur, 0.25)`.
+A pattern file evaluates to a Pattern, e.g. `Pbind(\note, Pseq([2, 6, 9], inf), \octave, 4, \dur, 0.25)`.
+Pitch goes in `\note` (or `\degree`), never `\midinote`: `\midinote` skips the pitch chain, so `\octave` and
+`\root` have no effect.
 Its synth is the pattern's own `\instrument` if it sets one, else the synth given when defining,
 else its previous binding. `/ps/pattern/play name otherSynth` rebinds it to another synth (not
 allowed if the pattern sets `\instrument` itself).

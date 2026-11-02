@@ -79,3 +79,6 @@ SC's own words: "it's SC!"
   file access): the pattern clock shares it, and a stall over the server latency (0.2 s) makes
   every playing note late. No `unixCmdGetStdOut` in the engine or UI.
 - Discuss design before building; don't add scope that wasn't asked for.
+- 2026-11-02: **patterns set pitch with `\note`** (or `\degree`), not `\midinote`, so `\octave` and
+  `\root` work. Existing patterns were converted pitch for pitch (`\note` = midinote - 60 at the
+  default octave 5).
