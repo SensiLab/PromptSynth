@@ -82,13 +82,13 @@ Its synth is the pattern's own `\instrument` if it sets one, else the synth give
 else its previous binding. `/ps/pattern/play name otherSynth` rebinds it to another synth (not
 allowed if the pattern sets `\instrument` itself).
 
-**Bar lines.** Play, stop and replacing a playing pattern (a define, a watched save, a rebind, a
-synth redefine) all happen on the pattern's next bar line, and a replaced pattern starts from its
-beginning there. A pattern sets its bar length in beats with a `\bar` key, e.g.
+**Beats and bar lines.** Play and stop happen on the next beat. Replacing a playing pattern (a
+define, a watched save, a rebind, a synth redefine) happens on the pattern's next bar line, and the
+replaced pattern starts from its beginning there. A pattern sets its bar length in beats with a `\bar` key, e.g.
 `Pbind(..., \bar, 6)` (first event's value; the engine reads it, the synth never sees it), else 4.
 Bar lines count from the clock's beat 0, so a pattern with `\bar, 6` starts on a multiple of 6
 beats and its swaps land at the same place in its cycle. A stop answers at once but the pattern
-keeps playing until the bar line (status still says `playing`). A play before then cancels it.
+keeps playing until the next beat (status still says `playing`). A play before then cancels it.
 `/ps/panic` stops at once.
 
 The engine chains the pattern with the synth's param buses, so `/ps/param/set` and mappings
@@ -206,8 +206,8 @@ The others only answer when they fail (`"ok":false,"errors":[...]`).
 | `/ps/param/get` | `synth` | *reply* `values`, `mappings`, `params` with specs, `hash` |
 | `/ps/pattern/define` | `name path [synth] [infoJson]` | *reply* validate, bind, save. Result: `synth, hash, keys, warnings` |
 | `/ps/pattern/default` | `name synth` | *reply* a quick pattern on `degree dur octave legato scale root` (not saved) |
-| `/ps/pattern/play` | `name [synth]` | *reply* play on the pattern's next bar line, optionally rebinding. Result has key-check `warnings` |
-| `/ps/pattern/stop` | `name` | stop on the pattern's next bar line |
+| `/ps/pattern/play` | `name [synth]` | *reply* play on the next beat, optionally rebinding. Result has key-check `warnings` |
+| `/ps/pattern/stop` | `name` | stop on the next beat |
 | `/ps/pattern/set` | `name key v1 [v2 ...]` | override a key live (not saved): one value repeats, several loop, `r` = rest, `scale` takes a name, a string of pattern code works too (`"Pwhite(0.1, 0.3)"`) |
 | `/ps/pattern/get` | `name` | *reply* `synth, hash, keys, overrides, playing` |
 | `/ps/channel/set` | `name value` | set an OSC channel (created on first use), 0..1 |

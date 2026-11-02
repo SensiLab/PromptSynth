@@ -243,12 +243,12 @@ tests = {
 	check.("bad pattern rejected", truthy.(res["ok"]).not, res);
 	res = request.('/ps/pattern/get', \walk);
 	check.("pattern get", res["synth"] == "perc" and: { truthy.(res["playing"]) }, res);
-	// just after a bar line, so the next one is a whole bar away
-	(TempoClock.default.timeToNextBeat(4) / TempoClock.default.tempo + 0.05).wait;
-	send.('/ps/pattern/stop', \walk);
-	check.("stop waits for the bar line", ps.patternPlaying(\walk) and: { ps.pendingStops[\walk].notNil });
-	(TempoClock.default.timeToNextBeat(4) / TempoClock.default.tempo + 0.1).wait;
-	check.("stopped on the bar line", ps.patternPlaying(\walk).not);
+	// just after a beat, so the next one is a whole beat away (stop is sent directly: send waits 0.3 s)
+	(TempoClock.default.timeToNextBeat(1) / TempoClock.default.tempo + 0.02).wait;
+	ps.stopPattern(\walk);
+	check.("stop waits for the beat", ps.patternPlaying(\walk) and: { ps.pendingStops[\walk].notNil });
+	(TempoClock.default.timeToNextBeat(1) / TempoClock.default.tempo + 0.1).wait;
+	check.("stopped on the next beat, not the bar line", ps.patternPlaying(\walk).not);
 	check.("pattern stop event", eventSeen.("pattern", \walk, 0));
 	check.("stop logged", lines.(lib +/+ "patterns/walk/pairings.jsonl").last.parseJSON["event"] == "stop");
 	request.('/ps/pattern/play', \walk, \pad);

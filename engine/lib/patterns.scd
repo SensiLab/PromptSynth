@@ -1,9 +1,9 @@
 // Named patterns. A pattern plays one synth at a time (its binding) and the engine chains it with
 // that synth's param buses, so /ps/param/set and mappings reach every note. Every play/stop is
 // logged to patterns/<name>/pairings.jsonl with both version hashes.
-// Play, stop and replacing the source all happen on the pattern's next bar line. A pattern sets
-// its bar length in beats with a \bar key (first event's value), else 4. The engine uses \bar
-// itself; it never reaches the synth's params.
+// Play and stop happen on the next beat; replacing the source of a playing pattern happens on its
+// next bar line. A pattern sets its bar length in beats with a \bar key (first event's value),
+// else 4. The engine uses \bar itself; it never reaches the synth's params.
 (
 // keys the default Event uses itself: never bus-mapped, and fine for a pattern to set
 eventKeys: #[freq, midinote, note, degree, octave, root, scale, dur, legato, sustain, stretch,
@@ -170,15 +170,15 @@ playPattern: { |self, name, synth|
 		if (self.patternPlaying(name)) { self.logPairing(p, \play) };
 	};
 	e = self.synthEntry(p[\synth]);
-	self.pendingStops.removeAt(p[\name]);    // a play cancels a stop waiting for its bar
+	self.pendingStops.removeAt(p[\name]);    // a play cancels a stop waiting for its beat
 	if (self.patternPlaying(name).not) {
-		Pdef(self.pdefKey(p[\name])).play(TempoClock.default, quant: p[\bar]);
+		Pdef(self.pdefKey(p[\name])).play(TempoClock.default, quant: 1);   // on the next beat
 		self.logPairing(p, \play);
 	};
 	(ok: true, name: p[\name], synth: p[\synth], warnings: self.keyCheck(p, e))
 },
 
-// waits for the next bar line unless `now`
+// waits for the next beat unless `now`
 stopPattern: { |self, name, now = false|
 	var p = self.patternEntry(name), clock = TempoClock.default, token;
 	var stop = {
@@ -193,8 +193,8 @@ stopPattern: { |self, name, now = false|
 	{ self.patternPlaying(p[\name]) and: { self.pendingStops[p[\name]].isNil } } {
 		token = UniqueID.next;
 		self.pendingStops[p[\name]] = token;
-		// a hair before the bar line, so that bar's first note doesn't play
-		clock.schedAbs(clock.nextTimeOnGrid(p[\bar]) - 0.001, {
+		// a hair before the beat, so that beat's note doesn't play
+		clock.schedAbs(clock.nextTimeOnGrid(1) - 0.001, {
 			if (self.pendingStops[p[\name]] == token) { stop.value };
 			nil
 		});

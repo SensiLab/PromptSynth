@@ -42,6 +42,8 @@ sounded good. Audio can be recorded as samples.
   parent), e.g. `glassSeq` from `warmDroneSeq`.
 - 2026-10-29: **play, stop and swaps land on the pattern's bar line**; the bar length is in the
   pattern (`\bar`, default 4 beats).
+- 2026-11-02: **play and stop land on the next beat**; swaps stay on the pattern's bar line.
+  Steph: "play and stop seem to only occur at end of bars. they at least should be quant to beat".
 - 2026-10-29: **the code is the interface.** The UI shows no params and no control channel
   values, moving or not. Steph: "i dont want to see parameters moving. the code is the
   interface and i see with my ears."
