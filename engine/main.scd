@@ -23,4 +23,9 @@ ps.libraryDir = ("PS_LIBRARY_DIR".getenv ?? { ps.config[\libraryDir] } ?? { root
 ps.assertKeys;
 ~promptSynth = ps;
 ps.startEngine;
+
+// PS_VIEWS=1 (tools/start-engine.sh --views): open the analysis views (engine/views.scd) once ready
+if ("PS_VIEWS".getenv.notNil) {
+	{ ps.waitFor(60, { ps.isReady == true }); { (root +/+ "views.scd").load }.defer }.fork(SystemClock)
+};
 )

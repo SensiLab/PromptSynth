@@ -99,6 +99,13 @@ hashes, so you can tell which versions played together and for how long.
 
 ## UI
 
+`tools/start-engine.sh --views` (or `PS_VIEWS=1`) also opens `engine/views.scd` once the engine is
+ready: a scrolling mel spectrogram, live mel bands and MFCCs in one window, and a stereo field /
+phase view in another, all on the hardware outs after the limiter. It needs the AnalysisViews
+classes (Projects/AnalysisViews, installed by its install.scd) and FluCoMa. Evaluate the file to
+open it on a running engine, or again after Cmd-period. It moves the server's default group after
+the engine's master group, so the views' analysis synths read the finished output.
+
 `engine/ui.scd` opens the UI in the engine's sclang: evaluate it once the engine is up. Evaluating
 it again replaces it; it reopens itself after an engine restart and survives Cmd-period.
 
