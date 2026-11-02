@@ -32,10 +32,9 @@ while index < count:
 
   if True:
     message = client.messages.create(
-      model="claude-3-5-sonnet-20241022",
+      model="claude-opus-5-5",
       # model="claude-3-7-sonnet-20250219",
-      max_tokens=1004,
-      temperature=1,
+      max_tokens=16000,
       system="You are a Supercollider expert designed to generate code examples.",
       messages=[
           {
@@ -53,13 +52,13 @@ while index < count:
       ]
     ) 
     
-    text_block = (message.content[0].text)
+    text_block = next(b.text for b in message.content if b.type == "text")
     print(text_block)
     code_block = re.search(r'```supercollider(.*?)```', text_block, re.DOTALL).group(1).strip()
 
   else:
     synths = ["WhiteNoise.ar(0.2)","SinOsc.ar(440, 0, 0.2)","Pulse.ar(440, 0.2, 0.2)","Saw.ar(440, 0.2)","LFPulse.ar(440, 0.2)","LFSaw.ar(440, 0.2)","LFPar.ar(440, 0.2)","Blip.ar(440, 0.2)"]
-    n = '\synth'
+    n = r'\synth'
     code_block = f'Ndef({n}).source = '+'{'+f'{synths[index]}'+'})'
 
   file_path = f'{path}{name}_{index}.sc'

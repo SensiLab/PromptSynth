@@ -4,9 +4,9 @@
 Anthropic{
 	classvar <uris;
 	classvar <>apiKey;
-	classvar <>model = "claude-opus-4-6";
+	classvar <>model = "claude-opus-5-5";
 	classvar <>maxTokens = 1000;
-	classvar <>temperature = 0.7;
+	classvar <>temperature; // nil: not sent (newer models reject it)
 	classvar <>version = "2023-06-01";
 	classvar <>keyFile;
 
@@ -17,8 +17,8 @@ Anthropic{
 			\COMPLETE: "/complete"
 		);
 
-		keyFile = PathName(Anthropic.class.filenameSymbol.asString).pathOnly;
-		keyFile = keyFile ++ Platform.pathSeparator ++ "anthropic_key.txt";
+		// the class file may be symlinked into Extensions, so look for the key there
+		keyFile = Platform.userExtensionDir +/+ "anthropic_key.txt";
 
 		// Check if JSONlib is available
 		if(JSONlib.isNil) {
@@ -229,12 +229,15 @@ AnthropicMessage : AnthropicObj{
 		var payload = (
 			"model": model ? Anthropic.model,
 			"max_tokens": maxTokens ? Anthropic.maxTokens,
-			"temperature": temperature ? Anthropic.temperature,
 			"messages": messages
 		);
 
 		if(systemPrompt.notNil) {
 			payload["system"] = systemPrompt;
+		};
+
+		if((temperature ? Anthropic.temperature).notNil) {
+			payload["temperature"] = temperature ? Anthropic.temperature;
 		};
 
 		AnthropicReq.new(Anthropic.uri(\MESSAGES), payload).execute(action, AnthropicMessage);

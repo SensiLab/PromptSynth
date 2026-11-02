@@ -32,9 +32,9 @@ testClassInit = {
     assert.(Anthropic.class.notNil, "Anthropic class exists");
     assert.(Anthropic.uris.notNil, "URIs initialized");
     assert.(Anthropic.uris[\BASE] == "https://api.anthropic.com/v1", "Base URI correct");
-    assert.(Anthropic.model == "claude-3-5-sonnet-20241022", "Default model set");
+    assert.(Anthropic.model == "claude-opus-5-5", "Default model set");
     assert.(Anthropic.maxTokens == 1000, "Default max tokens set");
-    assert.(Anthropic.temperature == 0.7, "Default temperature set");
+    assert.(Anthropic.temperature.isNil, "Default temperature unset");
 };
 
 // Test 2: API Key management

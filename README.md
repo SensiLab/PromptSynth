@@ -45,14 +45,14 @@ Evolving Supercollider synths using Large Language Models
     - Create Virtual Environment
     - Install Python Requirements
     - set ```export ANTHROPIC_API_KEY=```
-    - Set a prototype synth ```legacy/code/template_0.sc```
-    - Set prompt (used for every iteration) ```legacy/code/prompt.sc```
-    - Run ```legacy/code/oscCommands.sc``` in SC
-    - Run ```legacy/code/next_sound.py``` in Python
+    - Set a prototype synth ```legacy/breeding-loop/template_0.sc```
+    - Set prompt (used for every iteration) ```legacy/breeding-loop/prompt.sc```
+    - Run ```legacy/breeding-loop/oscCommands.sc``` in SC
+    - Run ```legacy/breeding-loop/next_sound.py``` in Python
 
 - How it works :
     - Hacked together as a very basic work flow
-    - Send Claude : ```legacy/code/template_0.sc``` and ```legacy/code/prompt.sc```
+    - Send Claude : ```legacy/breeding-loop/template_0.sc``` and ```legacy/breeding-loop/prompt.sc```
     - Claude returns some code : (and calls SC to load, interpret and play new Synth Definition code)
     - Each iteration is saved and loaded into SC, so every iteration is archived.
 
