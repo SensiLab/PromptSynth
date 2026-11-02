@@ -13,7 +13,7 @@ Pbind(
 	\octave, Pseq([5, 6], inf),
 	\dur, 0.5,
 	\cutoff, Pseg(Pseq([150, 1500], inf), 64, \exp, inf),
-	\wobbleRate, Pstep(Pseq([1, 2, 4, 2], inf), 32) * Pfunc { thisThread.clock.tempo },
+	\wobbleRate, Pstep(Pseq([1, 2, 4, 2], inf), 32) * Pfunc { TempoClock.default.tempo },   // the clock patterns play on (a define at boot runs off it)
 	\amp, 0.35,
 	\bar, 4
 )
