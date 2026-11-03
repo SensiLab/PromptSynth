@@ -101,6 +101,16 @@ hashes, so you can tell which versions played together and for how long.
 
 ## UI
 
+**UI 2** (`engine/ui2.scd`, opened by `tools/start-engine.sh --ui` or `PS_UI=1`, or evaluate it) is
+the other side of the conversation: what's playing (patterns and synths, start / stop by button or
+double-click, mute, panic, CPU and nodes), what Claude Code is doing right now (the last prompt, a
+big state line: thinking, reading, searching, writing, running, web, idle, with the file or
+command, and a "working m:ss" clock) with an activity feed, and the engine's log. Claude Code's
+side comes from the project's hooks (`.claude/settings.json`): on every prompt, tool call and stop,
+`tools/cc-hook.mjs` sends OSC `/cc/event event kind detail` to the engine's sclang port (`PS_PORT`,
+default 57120), where UI 2 listens; the engine itself ignores `/cc/...`. The hooks run async and
+never fail, so they don't slow Claude Code down, and nothing happens if no engine is running.
+
 `tools/start-engine.sh --views` (or `PS_VIEWS=1`) also opens `engine/views.scd` once the engine is
 ready: a scrolling mel spectrogram, live mel bands and MFCCs in one window, and a stereo field /
 phase view in another, all on the hardware outs after the limiter. It needs the AnalysisViews
@@ -217,6 +227,9 @@ The others only answer when they fail (`"ok":false,"errors":[...]`).
 | `/ps/tempo` | `bpm` | |
 | `/ps/master/amp` | `amp` | 0..2, before the limiter (ceiling -1 dBFS) |
 | `/ps/panic` | | stop all patterns, free all synths |
+| `/ps/history/steps` | `kind name` | *reply* the history player's steps for a pattern or synth (its pairings, oldest first): `index, time, pattern, patternHash, synth, synthHash, playable, current` |
+| `/ps/history/load` | `kind name index` | *reply* load that step's versions in memory (no new version, no history line) and play its pattern |
+| `/ps/history/end` | | *reply* back to the latest versions, with the settings from before the player started |
 | `/ps/rec/start` | `[synth or pattern] [seconds]` | *reply* `path`. Records the master output to WAV (24-bit) |
 | `/ps/rec/stop` | | *reply* `path` |
 | `/ps/library/reload` | | *reply* `loaded`, `failed` |

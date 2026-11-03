@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PromptSynth</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1d1b; --mute: #7a7872; --line: #e3e1db;
+    --play: #e3f4e1; --playInk: #2c7a3a; --accent: #3b6fd6;
+    --reading: #2f66d0; --searching: #7b44c2; --writing: #d0701a; --running: #2c8a45;
+    --web: #188a96; --agent: #a23a78; --failed: #c83232; --thinking: #8a8780; --idle: #b5b2ab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --mute: #9a988f; --line: #33322f;
+      --play: #1f3a23; --playInk: #8fd49a; --thinking: #a7a49c; --idle: #6c6a64; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 ui-sans-serif, -apple-system, system-ui, sans-serif; }
+  header { display: flex; gap: 18px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  .stat { color: var(--mute); font: 13px ui-monospace, Menlo, monospace; }
+  .stat b { color: var(--ink); font-weight: 600; }
+  .down { color: var(--failed) !important; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+  button:hover { border-color: var(--mute); }
+  #panic { margin-left: auto; color: var(--failed); }
+  main { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(320px, 1.2fr) minmax(300px, 1fr); gap: 16px; padding: 16px 18px; }
+  @media (max-width: 1100px) { main { grid-template-columns: minmax(240px, 0.8fr) minmax(320px, 1.2fr); } }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  li { cursor: pointer; }
+  li.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+  #detailTitle { font: 600 20px ui-monospace, Menlo, monospace; margin: 2px 0; overflow-wrap: anywhere; }
+  #detailSub { color: var(--mute); font: 13px ui-monospace, Menlo, monospace; margin-bottom: 10px; }
+  #playBtn { font-size: 16px; padding: 8px 22px; border-radius: 8px; margin-bottom: 14px; }
+  #playBtn.on { background: var(--play); color: var(--playInk); border-color: var(--playInk); }
+  #playBtn:disabled { opacity: .4; cursor: default; }
+  .trail { list-style: none; margin: 0; padding: 0; font: 12px/1.45 ui-monospace, Menlo, monospace; max-height: 420px; overflow-y: auto; }
+  .trail li { display: block; cursor: default; padding: 4px 6px; }
+  .trail li.loaded { background: var(--bg); }
+  .trail .h { color: var(--mute); }
+  .trail .step { display: block; padding-left: 2ch; overflow-wrap: anywhere; }
+  .hist li { cursor: pointer; display: block; }
+  .hist li:hover { background: var(--bg); }
+  .hist li.cur { background: var(--play); color: var(--playInk); }
+  .histBar { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; flex-wrap: wrap; }
+  #histLabel { color: var(--mute); font: 12px ui-monospace, Menlo, monospace; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--mute); margin: 4px 0 8px; }
+  ul { list-style: none; margin: 0 0 14px; padding: 0; }
+  li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; font: 13px ui-monospace, Menlo, monospace; }
+  li.playing { background: var(--play); color: var(--playInk); }
+  li .name { flex: 0 0 auto; min-width: 12ch; }
+  li .sub { color: var(--mute); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li.playing .sub { color: inherit; opacity: .7; }
+  li button { padding: 1px 8px; font-size: 12px; }
+  #ccState { font: 600 26px ui-monospace, Menlo, monospace; margin: 4px 0 2px; }
+  #ccDetail { font: 13px ui-monospace, Menlo, monospace; color: var(--mute); min-height: 1.4em; overflow-wrap: anywhere; }
+  #ccClock { float: right; font: 12px ui-monospace, Menlo, monospace; color: var(--mute); }
+  #ccPrompt { padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--bg); border-radius: 4px; margin: 6px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .feed { font: 12px/1.5 ui-monospace, Menlo, monospace; max-height: 340px; overflow-y: auto; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .feed .t { color: var(--mute); }
+  footer { padding: 0 18px 18px; }
+  footer .feed { max-height: 180px; }
+
+  /* fit the window: header and engine log keep their size, the columns fill the rest and each
+     list scrolls inside its own box */
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  header, footer { flex: 0 0 auto; }
+  main { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); padding-bottom: 10px; }
+  main > section { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  main > section > :not(ul):not(pre) { flex: 0 0 auto; }   /* only the lists and feeds shrink and scroll */
+  #patterns { flex: 3 1 0; overflow-y: auto; min-height: 60px; margin-bottom: 10px; }
+  #synths { flex: 2 1 0; overflow-y: auto; min-height: 60px; margin-bottom: 0; }
+  #trail { flex: 2 1 0; max-height: none; min-height: 50px; }
+  #hist { flex: 3 1 0; max-height: none; min-height: 60px; }
+  #ccFeed { flex: 1 1 0; max-height: none; min-height: 50px; }
+  footer section { height: clamp(90px, 18vh, 200px); display: flex; flex-direction: column; }
+  #log { flex: 1 1 0; max-height: none; min-height: 0; }
+  /* medium windows: Claude Code goes under the list and the details */
+  @media (max-width: 1100px) {
+    main { grid-template-rows: minmax(0, 2.6fr) minmax(0, 1fr); }
+    main > section:nth-child(3) { grid-column: 1 / -1; }
+    #ccState { font-size: 18px; margin: 0; }
+    #ccPrompt { max-height: 3.2em; overflow-y: auto; margin: 4px 0 6px; padding: 4px 8px; }
+    #trail { min-height: 36px; } #hist { min-height: 48px; }
+    #playBtn { padding: 5px 16px; margin-bottom: 8px; }
+  }
+  /* small screens: no locking, the page scrolls */
+  @media (max-width: 760px) {
+    body { height: auto; overflow: auto; }
+    main { grid-template-rows: none; }
+    main > section { overflow: visible; }
+    #patterns, #synths, #trail, #hist, #ccFeed { flex: none; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PromptSynth</h1>
+  <span class="stat" id="engine">engine <b>connecting…</b></span>
+  <span class="stat" id="cpu"></span>
+  <span class="stat" id="nodes"></span>
+  <span class="stat" id="tempo"></span>
+  <button id="panic" title="stop all patterns, free all synths">panic</button>
+</header>
+<main>
+  <section>
+    <h2>patterns</h2>
+    <ul id="patterns"></ul>
+    <h2>synths</h2>
+    <ul id="synths"></ul>
+  </section>
+  <section>
+    <h2>selected</h2>
+    <div id="detailTitle">(select a pattern or a synth)</div>
+    <div id="detailSub"></div>
+    <button id="playBtn" disabled>play</button>
+    <h2>trail <span class="h" id="trailCount"></span></h2>
+    <ul class="trail" id="trail"></ul>
+    <h2 style="margin-top:16px">history (click a step to play it)</h2>
+    <ul class="trail hist" id="hist"></ul>
+    <div class="histBar">
+      <button id="prevBtn">◀ prev</button><button id="nextBtn">next ▶</button><button id="latestBtn">latest</button>
+      <span id="histLabel">latest versions</span>
+    </div>
+  </section>
+  <section>
+    <h2>Claude Code <span id="ccClock"></span></h2>
+    <div id="ccState">○ idle</div>
+    <div id="ccDetail"></div>
+    <h2>prompt</h2>
+    <div id="ccPrompt">(no prompt yet)</div>
+    <h2>activity</h2>
+    <pre class="feed" id="ccFeed"></pre>
+  </section>
+</main>
+<footer>
+  <section>
+    <h2>engine</h2>
+    <pre class="feed" id="log"></pre>
+  </section>
+</footer>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const colors = { reading: "--reading", searching: "--searching", writing: "--writing", running: "--running",
+    web: "--web", agent: "--agent", skill: "--agent", tool: "--thinking", failed: "--failed",
+    thinking: "--thinking", idle: "--idle" };
+  const time = () => new Date().toTimeString().slice(0, 8);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const addLine = (el, text, max = 200) => {
+    el.insertAdjacentHTML("afterbegin", `<span class="t">${time()}</span>  ${esc(text)}\n`);
+    while (el.childNodes.length > max * 2) el.removeChild(el.lastChild);
+  };
+
+  let ws, promptAt = null, selected = null, lastSt = null, trailHash = null;
+  const send = (cmd, name, extra = {}) => ws && ws.readyState === 1 && ws.send(JSON.stringify({ cmd, name, ...extra }));
+  const entryOf = (st, sel) => sel && st && (sel.kind === "synth" ? st.synths : st.patterns).find((e) => e.name === sel.name);
+
+  // --- history player (as in engine/ui2.scd) ---
+  let steps = [], stepIndex = null, hidden = 0, histActive = false;
+  function showHistory(res) {
+    if (!selected || res.name !== selected.name || res.kind !== selected.kind) return;
+    const all = res.steps;
+    steps = all.filter((s) => s.playable);
+    // hiding unstored steps can leave the same versions twice in a row: keep one
+    steps = steps.filter((s, i) => i === 0 || ["pattern", "patternHash", "synthHash"].some((k) => steps[i - 1][k] !== s[k]));
+    hidden = all.length - steps.length;
+    if (!steps.length || !steps[steps.length - 1].current) steps.push({ now: true, current: true, pattern: all.at(-1)?.pattern });
+    stepIndex = histActive ? null : steps.length - 1;   // not playing history: what plays is the current files
+    renderHistory();
+  }
+  function renderHistory() {
+    $("hist").innerHTML = steps.map((s, i) => `<li data-i="${i}" class="${i === stepIndex ? "cur" : ""}">${i === stepIndex ? "▶" : "&nbsp;"} ` +
+      (s.now ? "now: the current files" : `<span class="h">${esc((s.time ?? "").slice(5, 16).replace("T", " "))}</span>  ${esc(s.pattern)} ${esc(s.patternHash)}  on ${esc(s.synth)} ${esc(s.synthHash)}${s.current ? "  (now)" : ""}`) + "</li>").join("");
+    for (const li of $("hist").children) li.onclick = () => loadStep(Number(li.dataset.i));
+    $("histLabel").textContent = (histActive ? `playing history: step ${(stepIndex ?? 0) + 1} of ${steps.length}` : "latest versions")
+      + (hidden ? `   (${hidden} saved-over steps hidden: not stored)` : "");
+  }
+  function loadStep(i) {
+    const s = steps[i];
+    if (!s || !selected) return;
+    stepIndex = i;
+    renderHistory();
+    if (s.current) { send("history/end"); if (s.pattern) setTimeout(() => send("solo", s.pattern, { kind: "pattern" }), 300); }
+    else send("history/load", selected.name, { kind: selected.kind, index: s.index });
+  }
+  $("prevBtn").onclick = () => loadStep(Math.max(0, (stepIndex ?? steps.length) - 1));
+  $("nextBtn").onclick = () => loadStep(Math.min(steps.length - 1, (stepIndex ?? -1) + 1));
+  $("latestBtn").onclick = () => send("history/end");
+  function historyReply(m) {
+    if (m.path === "history/steps") showHistory(m.res);
+    else if (m.path === "history/load") addLine($("log"), m.res.ok === false ? "history: " + (m.res.errors ?? []).join("; ")
+      : `history step ${(stepIndex ?? 0) + 1}: pattern ${m.res.pattern}, synth ${m.res.synth}`);
+    else if (m.path === "history/end" && selected) { histActive = false; send("history/steps", selected.name, { kind: selected.kind }); }
+  }
+
+  function select(kind, name) {
+    selected = { kind, name };
+    trailHash = null;
+    send("history/steps", name, { kind });
+    lastLists = "";
+    if (lastSt) status(lastSt);
+  }
+
+  // one thing at a time: play stops everything else (the bridge's solo); stop stops this one
+  $("playBtn").onclick = () => {
+    // with a history step loaded, play / stop is that step's pattern; otherwise the selected item
+    const stepPat = histActive && stepIndex != null && steps[stepIndex]?.pattern;
+    const sel = stepPat ? { kind: "pattern", name: stepPat } : selected;
+    const e = entryOf(lastSt, sel);
+    if (!e) return;
+    if (e.playing) send(sel.kind === "synth" ? "synth/release" : "pattern/stop", sel.name);
+    else send("solo", sel.name, { kind: sel.kind });
+  };
+
+  function details(st) {
+    const e = entryOf(st, selected);
+    const b = $("playBtn");
+    if (!e) { b.disabled = true; return; }
+    $("detailTitle").textContent = e.name;
+    $("detailSub").textContent = selected.kind === "pattern" ? `pattern → ${e.synth}   ${e.hash ?? ""}` : `${e.kind} synth   ${e.hash ?? ""}`;
+    b.disabled = selected.kind === "synth" && e.kind === "fx";
+    b.textContent = e.playing ? "■ stop" : "▶ play";
+    b.className = e.playing ? "on" : "";
+    if (e.hash !== trailHash) { trailHash = e.hash; send("trail", selected.name, { kind: selected.kind }); }
+  }
+
+  function showTrail(t) {
+    if (!selected || t.name !== selected.name || t.kind !== selected.kind) return;
+    $("trailCount").textContent = `(${t.versions} versions)`;
+    const items = t.lines.map((l) => `<li class="${l.loaded ? "loaded" : ""}">${l.loaded ? "●" : "&nbsp;"} <span class="h">${esc(l.hash)}  ${esc(l.time)}</span><span class="step">${esc(l.step)}</span></li>`);
+    if (t.parent) items.push(`<li><span class="h">copied from ${esc(t.parent)}</span></li>`);
+    $("trail").innerHTML = items.join("");
+  }
+
+  function list(el, items, kind) {
+    el.innerHTML = "";
+    for (const it of items) {
+      const li = document.createElement("li");
+      if (it.playing) li.className = "playing";
+      const sub = kind === "pattern" ? "→ " + it.synth : it.kind;
+      if (selected && selected.kind === kind && selected.name === it.name) li.className += " selected";
+      li.innerHTML = `<span>${it.playing ? "▶" : "&nbsp;"}</span><span class="name">${esc(it.name)}</span><span class="sub">${esc(sub)}</span>`;
+      li.onclick = () => select(kind, it.name);
+      el.appendChild(li);
+    }
+  }
+
+  let lastLists = "";
+  function status(st) {
+    lastSt = st;
+    if (histActive !== !!st.historyActive) { histActive = !!st.historyActive; renderHistory(); }
+    $("engine").innerHTML = `engine <b>${esc(st.engine)}</b> · server <b class="${st.server ? "" : "down"}">${st.server ? "running" : "NOT RUNNING"}</b>`;
+    $("cpu").innerHTML = `CPU <b>${st.cpu}%</b>`;
+    $("nodes").innerHTML = `nodes <b>${st.numSynths}</b>`;
+    $("tempo").innerHTML = `<b>${Math.round(st.tempo * 10) / 10}</b> BPM`;
+    const key = JSON.stringify([st.patterns, st.synths]);
+    if (key !== lastLists) { lastLists = key; list($("patterns"), st.patterns, "pattern"); list($("synths"), st.synths, "synth"); }
+    details(st);
+  }
+
+  function cc(m) {
+    let shown = m.kind;
+    if (m.kind === "prompt") { $("ccPrompt").textContent = m.detail; promptAt = Date.now(); shown = "thinking"; addLine($("ccFeed"), "prompt   " + m.detail); }
+    else if (m.kind === "done") shown = "thinking";
+    else if (m.kind === "failed") { addLine($("ccFeed"), "failed   " + m.detail); shown = "thinking"; }
+    else if (m.kind === "idle") { promptAt = null; addLine($("ccFeed"), "done"); }
+    else addLine($("ccFeed"), m.kind.padEnd(9) + m.detail);
+    $("ccState").textContent = (shown === "idle" ? "○ " : "● ") + shown;
+    $("ccState").style.color = `var(${colors[shown] ?? "--thinking"})`;
+    $("ccDetail").textContent = ["thinking", "idle"].includes(shown) ? "" : m.detail;
+  }
+
+  function event(m) {
+    const a = m.args;
+    const text = m.name === "log" ? a[0]
+      : m.name === "pattern" ? (a[1] === 1 ? `▶ ${a[0]} on ${a[2]}` : `■ ${a[0]} stopped`)
+      : m.name === "synth" ? (a[1] === 1 ? `▶ synth ${a[0]}` : `■ synth ${a[0]} released`)
+      : m.name === "defined" ? `new version: ${a.join(" ")}`
+      : m.name === "panic" ? "panic: everything stopped" : null;
+    if (text) addLine($("log"), text);
+  }
+
+  setInterval(() => {
+    if (promptAt === null) { $("ccClock").textContent = ""; return; }
+    const t = Math.floor((Date.now() - promptAt) / 1000);
+    $("ccClock").textContent = `working ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+  }, 500);
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.type === "status") status(m.status);
+      else if (m.type === "event") event(m);
+      else if (m.type === "cc") cc(m);
+      else if (m.type === "trail") showTrail(m);
+      else if (m.type === "history") historyReply(m);
+      else if (m.type === "log") addLine($("log"), m.text);
+      else if (m.type === "engine" && !m.up) $("engine").innerHTML = `engine <b class="down">not responding</b>`;
+    };
+    ws.onclose = () => { $("engine").innerHTML = `engine <b class="down">bridge disconnected, retrying…</b>`; setTimeout(connect, 1500); };
+  }
+  $("panic").onclick = () => send("panic");
+  connect();
+</script>
+</body>
+</html>

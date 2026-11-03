@@ -13,7 +13,9 @@ changes, update `docs/cheatsheet.md` too.
 - Talk to a running engine with `node tools/psosc.mjs /ps/... args` (`PS_PORT` overrides 57120).
 - Never put MouseX/MouseY/MouseButton/KeyState in a synth: expose a param and map a channel.
 - UI: `engine/ui.scd`, evaluated in the engine's sclang once it's up.
-- Start headless with `tools/start-engine.sh` (`--views` opens the analysis views, `engine/views.scd`).
+- Start headless with `tools/start-engine.sh` (`--views` opens the analysis views, `engine/views.scd`;
+  `--ui` opens UI 2, `engine/ui2.scd`, which shows Claude Code's activity via the hooks in `.claude/settings.json`;
+  `--web` also starts the web UI bridge, `web/server.mjs`, on http://127.0.0.1:8090/).
 - Never block the engine's interpreter (no `unixCmdGetStdOut`, no per-frame file reads): the
   pattern clock shares it, and stalls make notes late.
 - `legacy/` is the old prototype; leave it alone unless asked.
