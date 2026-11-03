@@ -24,8 +24,11 @@ ps.assertKeys;
 ~promptSynth = ps;
 ps.startEngine;
 
-// PS_VIEWS=1 (tools/start-engine.sh --views): open the analysis views (engine/views.scd) once ready
-if ("PS_VIEWS".getenv.notNil) {
-	{ ps.waitFor(60, { ps.isReady == true }); { (root +/+ "views.scd").load }.defer }.fork(SystemClock)
+// PS_VIEWS=1 / PS_UI=1 (tools/start-engine.sh --views / --ui): open the analysis views
+// (engine/views.scd) and UI 2 (engine/ui2.scd) once the engine is ready
+[["PS_VIEWS", "views.scd"], ["PS_UI", "ui2.scd"]].do { |pair|
+	if (pair[0].getenv.notNil) {
+		{ ps.waitFor(60, { ps.isReady == true }); { (root +/+ pair[1]).load }.defer }.fork(SystemClock)
+	}
 };
 )
