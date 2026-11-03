@@ -129,6 +129,7 @@ statusInfo: { |self|
 	(ok: true, ready: self.isReady == true, engine: self.engineVersion, startedAt: self.startedAt,
 		server: server.serverRunning, sampleRate: server.sampleRate, cpu: server.avgCPU.round(0.1),
 		numSynths: server.numSynths, langPort: NetAddr.langPort, tempo: TempoClock.default.tempo * 60,
+		historyActive: self.historyActive == true,
 		masterAmp: self.config[\masterAmp], recording: self.recPath, libraryDir: self.libraryDir,
 		synths: self.synths.values.asArray.sort(byName).collect { |e|
 			(name: e[\name], kind: e[\kind], hash: e[\hash], playing: e[\instance].notNil)

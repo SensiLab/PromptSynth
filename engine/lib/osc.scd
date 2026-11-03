@@ -60,6 +60,26 @@ oscCommands: { |self|
 		'/ps/master/amp': [{ |args| self.setMasterAmp(args[0] ?? { Error("missing amp").throw }) }, false],
 		'/ps/panic': [{ self.panic }, false],
 
+		// history player (engine/lib/history.scd): steps of a pattern's or synth's pairings, load
+		// one by its index in that list (old versions in memory only), back to the latest
+		'/ps/history/steps': [{ |args|
+			var steps = self.historySteps((args[0] ?? { Error("missing kind").throw }).asSymbol,
+				(args[1] ?? { Error("missing name").throw }).asSymbol);
+			(ok: true, kind: args[0].asString, name: args[1].asString, steps: steps.collect { |s, i|
+				s.copy.putAll((index: i)).reject { |v, k| #[patternFile, synthFile].includes(k) } })
+		}, true],
+		'/ps/history/load': [{ |args, addr|
+			var steps = self.historySteps((args[0] ?? { Error("missing kind").throw }).asSymbol,
+				(args[1] ?? { Error("missing name").throw }).asSymbol), i = args[2].asInteger, step = steps[i];
+			if (step.isNil) { Error("no history step % (of %)".format(i, steps.size)).throw };
+			{ self.reply(addr, '/ps/history/load', self.historyLoad(step).putAll((ok: true, index: i))) }.fork(SystemClock);
+			nil
+		}, true],
+		'/ps/history/end': [{ |args, addr|
+			{ self.historyEnd; self.reply(addr, '/ps/history/end', (ok: true)) }.fork(SystemClock);
+			nil
+		}, true],
+
 		'/ps/rec/start': [{ |args|
 			// /ps/rec/start [name] [dur]: a lone number is a duration
 			if (args[0].isNumber) { self.startRec(nil, args[0]) } { self.startRec(args[0], args[1]) }

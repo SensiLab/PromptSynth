@@ -366,6 +366,15 @@ tests = {
 	ps.historyEnd;
 	check.("history end puts the latest back", ps.synths[\pad][\hash] == ps.fileHash(ps.synthDir(\pad) +/+ "synthdef.scd"));
 	check.("history end restores mappings", ps.synths[\pad][\mappings][\detune].notNil and: { ps.historyActive.not });
+	res = request.('/ps/history/steps', \pattern, \walk);
+	check.("OSC history steps", truthy.(res["ok"]) and: { res["steps"].size > 0 } and: { res["steps"][0]["index"].asInteger == 0 }
+		and: { res["steps"][0]["patternFile"].isNil }, res["steps"] !? (_.size));
+	res = request.('/ps/history/load', \pattern, \walk, 0);
+	check.("OSC history load", truthy.(res["ok"]) and: { ps.historyActive } and: { truthy.(request.('/ps/status')["historyActive"]) }, res);
+	res = request.('/ps/history/end');
+	check.("OSC history end", truthy.(res["ok"]) and: { ps.historyActive.not }, res);
+	res = request.('/ps/history/load', \pattern, \walk, 9999);
+	check.("OSC history load out of range errors", truthy.(res["ok"]).not and: { ps.historyActive.not }, res);
 	request.('/ps/unmap', \pad, \detune);
 	send.('/ps/pattern/stop', \walk);
 	ps.stopPattern(\walk, true);
