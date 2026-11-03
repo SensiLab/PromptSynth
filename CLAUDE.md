@@ -1,8 +1,12 @@
 # PromptSynth
 
-Read `docs/` before planning or building: `docs/decisions.md` (settled decisions, terms, rules)
-and `docs/plan.md` (current plan and open questions). Keep them up to date: record new decisions
-with a date, and update the plan when a phase finishes or changes.
+**Writing or changing synths and patterns:** read `docs/cheatsheet.md` only, then start. Don't read
+other docs, engine code or unrelated library files first; open them only if something fails.
+
+**Planning, or changing the engine, tools or UI:** read `docs/decisions.md` (settled decisions,
+terms, rules) and `docs/plan.md` (current plan and open questions). Keep them up to date: record
+new decisions with a date, and update the plan when a phase finishes or changes. When a rule
+changes, update `docs/cheatsheet.md` too.
 
 - Engine: `engine/` (sclang, OSC API documented in `engine/README.md`). Tests:
   `PS_SERVER_PORT=57140 PS_LIBRARY_DIR=<tmp dir> sclang engine/test/run_tests.scd`.
