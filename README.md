@@ -56,7 +56,7 @@ Evolving Supercollider synths using Large Language Models
     - Claude returns some code : (and calls SC to load, interpret and play new Synth Definition code)
     - Each iteration is saved and loaded into SC, so every iteration is archived.
 
-<center><img src="PromptSynth.jpg" width="80%" alt="Description"></center>
+<center><img src="legacy/PromptSynth.jpg" width="80%" alt="The prototype breeding loop running"></center>
 
 
 
@@ -82,11 +82,75 @@ Evolving Supercollider synths using Large Language Models
     - Feels like growing synths
     - Have not improved or developed the idea further as I am too busy ‘prompting’ new ideas and listening. Is this a good thing?
 
+### Now (2026) : the engine
+
+The prototype grew up. Instead of a Python script calling the API in a loop, I now prompt
+[Claude Code](https://claude.com/claude-code) in a terminal, and it does the work: writes the
+synth or pattern, defines it in a running SuperCollider engine, checks the numbers, plays it,
+fixes it. I listen and prompt again. The code is the interface : "i see with my ears".
+
+- Dependencies : [Supercollider](https://supercollider.github.io) 3.14 / [Claude Code](https://claude.com/claude-code) / [Node](https://nodejs.org) (for the little OSC tool). No API keys, no Python.
+- Optional : [FluCoMa](https://www.flucoma.org) and my AnalysisViews classes for the spectrogram / stereo views.
+
+```mermaid
+flowchart LR
+    me([me: prompt in a terminal]) --> cc[Claude Code]
+    cc -- writes --> lib[(library/<br/>synths + patterns)]
+    cc -- "OSC (tools/psosc.mjs)" --> eng[engine<br/>sclang]
+    lib -- "watched: save = reload" --> eng
+    eng -- "versions, history,<br/>pairings, state" --> lib
+    ch([mouse / keys / OSC<br/>control channels]) --> eng
+    eng --> sc[scsynth<br/>audio out]
+    eng --> ui[UI + history player<br/>analysis views]
+```
+
+- How it works :
+    - The **engine** (`engine/`) is sclang with an OSC API. It validates every synth (compile, contract check, a 2 s smoke test for NaNs, silence, clipping), then stores it.
+    - Every **version is content-hashed** and kept, with the prompt that made it. Each prompt adds to the chain, so a synth's history reads like the conversation:
+
+      > hollow log with a piano string decay and a small amount of vibrato at the tail end... / add a pad synth layer / all synths should have env parameters / add inharmonics to make the wood sound more like a metal drum
+
+    - **Pairings** log which pattern version played on which synth version, and when.
+    - **Save over a file** while it plays and it reloads (refining, not a new version).
+    - **Patterns** play and stop on the next beat, and swap on the pattern's bar line.
+    - **Rules the LLM has to follow** live in [`docs/decisions.md`](docs/decisions.md) and [`docs/cheatsheet.md`](docs/cheatsheet.md) : never read the mouse inside a synth (map a control channel onto a param instead), every synth has envelope params, nothing may block the interpreter (the pattern clock shares it)...
+
+```mermaid
+flowchart LR
+    p[prompt] --> d{define}
+    d -- "fails: compile,<br/>contract, smoke" --> x[errors and numbers<br/>back to Claude, it fixes]
+    x --> d
+    d -- ok --> v["new version<br/>versions/&lt;hash&gt;.scd<br/>+ history.jsonl"]
+    v --> play[plays: pairings.jsonl]
+    play -- "save over the file" --> r[reloads in place<br/>not stored]
+    r --> play
+    play -- "next prompt" --> p
+```
+
+- Running it :
+    - `tools/start-engine.sh` starts the engine headless, post window in the terminal. `--views` also opens the analysis views (mel spectrogram, bands, MFCCs, stereo field).
+    - Evaluate `engine/ui.scd` for the UI : synths and patterns, each one's trail of versions, an event log, meters, mute, CPU / nodes, and a **history player** that steps back through what played.
+    - Then just talk to Claude Code in the repo. Details : [`engine/README.md`](engine/README.md), plan : [`docs/plan.md`](docs/plan.md).
+
+- Some of what came out of the sessions (all in `library/`) :
+    - Synths : warmDrone (phase distortion, air, a wooden knock), hollowLog (string + log + pad, then a metal drum), glass with a whisper attack, a Model D style fatMoog, an 808 hat, a dubstep growlBass, harpRecorder (harpsichord + recorder), swimFloat (meditation / floating), birdCall and an Australian magpie.
+    - Patterns : Bach's C major prelude ([WTC I](https://en.wikipedia.org/wiki/Prelude_and_Fugue_in_C_major,_BWV_846)), Vivaldi's [Spring](https://en.wikipedia.org/wiki/The_Four_Seasons_(Vivaldi)) (first 32 bars, notes from the [Mutopia Project](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=301) LilyPond, CC BY-SA), deadmau5-style progressive house, an evolving pattern that never settles, arpeggios of a very famous IV-V-iii-vi.
+    - The magpie went through research first : the syrinx has two independent voices and the "warble" is frequencies beating against each other, not an LFO ([Suthers, Wild & Kaplan 2011](https://doi.org/10.1007/s00359-010-0585-6)).
+
+- Outcome so far :
+    - The loop is now a conversation : prompt, listen, refine, and every defined version is kept with its prompt.
+    - Claude still gets it wrong (a mono "stereo" bass, gain staging that clipped, the odd syntax slip), but it diagnoses and fixes from the numbers and from what I hear.
+    - It also builds the tools : the engine, tests (135 of them), the watcher, the UI, the history player were all made the same way.
+    - Saving over files is the fastest way to refine, but those edits aren't stored yet, so the history player can't replay them.
+
 ### Future : 
 
-- Rag (Retrieval-Augmented Generation), MCP (Model Context Protocol) and general tooling.
-- Build more robust ‘play ground’ for testing LLM’s, workflows and prompting strategies.
-- Archive outputs : code, audio, error, analysis.
+- ~~Build more robust ‘play ground’ for testing LLM’s, workflows and prompting strategies.~~ The engine.
+- ~~Archive outputs : code, audio, error, analysis.~~ Versions, prompts, pairings and failures are kept; recording to WAV is in.
+- [MCP](https://modelcontextprotocol.io) (Model Context Protocol) and prompting from inside the SC window : parked. The terminal is better than I expected.
+- Store every save, so the history player can replay the refining too.
+- Analysis as Claude's ears : measure real recordings (e.g. magpies, with [FluCoMa](https://www.flucoma.org)) and turn them into synth parameters.
+- MIDI in, so a note can play a call or a chord.
 - Automate automate automate : batch process all of it.
 - Local model version.
 - Looking for collaborators :  ideas, techniques, code
