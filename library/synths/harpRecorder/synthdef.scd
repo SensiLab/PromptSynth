@@ -24,10 +24,10 @@ SynthDef(\harpRecorder, { |out = 0, gate = 1, freq = 440, amp = 0.3, attack = 0.
 		var harp = Pluck.ar(exc, Impulse.ar(0), 0.05, fv.reciprocal, decay * 3, coef)
 			+ Pluck.ar(exc, Impulse.ar(0), 0.05, (fv * 2.003).reciprocal, decay * 2, coef, octave);
 		var f = fv * (1 + (chiff * 0.01 * tone));
-		var rec = SinOsc.ar(f) + SinOsc.ar(f * 0.5, 0, tone.linlin(0, 1, 0.05, 0.3))
-			+ SinOsc.ar(f * 2, 0, tone.linlin(0, 1, 0.02, 0.15));
+		var rec = SinOsc.ar(f/2) + SinOsc.ar(f * 2.5, 0, tone.linlin(0, 1, 0.05, 0.3))
+			+ SinOsc.ar(f * 1.5, 0, tone.linlin(0, 1, 0.02, 0.15));
 		// breath: its level flutters and its centre wanders, around breathRate, breathMove deep
-		var flutter = (1 + LFNoise1.kr(breathRate * Rand(1.5, 2.5), breathMove * 0.7)).max(0);
+		var flutter = (1 + LFNoise1.kr(breathRate * Rand(1.5, 2.5), breathMove * 0.1)).max(0);
 		var centre = fv * 2 * LFNoise2.kr(breathRate * Rand(0.7, 1.3)).exprange(1 / (1 + breathMove), 1 + breathMove);
 		rec = rec + BPF.ar(WhiteNoise.ar, centre.clip(100, 16000), 0.2, breath * 3 * flutter)
 			+ (BPF.ar(WhiteNoise.ar, (fv * 4).clip(100, 16000), 0.8) * chiff * tone * 2);
