@@ -32,6 +32,23 @@ sounded good. Audio can be recorded as samples.
   describe that parked path. Steph: "enjoying the setup as is".
 - 2026-11-01: **the UI is optional.** UI v1 stays as it is; no further UI work is planned unless
   Steph asks. Steph: "not even sure i need a ui".
+- 2026-11-02: **speed over accuracy** in how Claude works here: the time from prompt to sound
+  matters most. Steph: "i am more looking for speed more than accuracy".
+- 2026-11-03: **a cheat sheet for synth and pattern work.** Sessions read `docs/cheatsheet.md`
+  only; `decisions.md` and `plan.md` are for planning and engine changes. A rule change updates
+  the cheat sheet too.
+- 2026-11-03: **different models for different tasks**, agreed in principle; the split is open
+  (see plan, "Variants and staging").
+- 2026-11-03: **text-based interaction, not the GUI.** New workflow features (variants,
+  staging, progress) are driven from the Claude Code terminal: project slash commands, plus a
+  status line for progress. Steph: "i dont want to rely on the gui. i prefer text based
+  interaction." Commands, agents and the status line live in this repo's `.claude/`, so they
+  persist across sessions and only apply in this project.
+- 2026-11-04: **a web UI, stage 1**, in `web/`: a local Node bridge (`web/server.mjs`, no
+  dependencies, 127.0.0.1 only, started by hand) serving one page over WebSocket, OSC to the
+  engine. This revisits "no long-running daemon" for the UI bridge only; the engine still needs
+  none. Claude Code's activity reaches it from the project hooks via `tools/cc-hook.mjs`. The Qt
+  UIs stay until the web one is as good. Steph: "yes do stage 1".
 - 2026-10-29: **one main window**; analysis (scopes, spectra) in a separate window.
 - 2026-10-29: the **mouse channel reads the whole screen**; the UI doesn't capture the mouse.
 - 2026-10-29: **mappings are always made in code** (OSC / Claude), never in the UI.

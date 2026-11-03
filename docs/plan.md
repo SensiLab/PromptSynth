@@ -1,8 +1,10 @@
 # Plan
 
-Status 2026-11-01. The terminal workflow (Claude Code + `tools/psosc.mjs`) is primary. MCP and
+Status 2026-11-04. The terminal workflow (Claude Code + `tools/psosc.mjs`) is primary. MCP and
 generation from sclang are parked, and the UI is optional (see decisions, 2026-11-01). The
 parts of phase 2 that don't need MCP (channel strips, the smoke-before-add fix) come first.
+Speed is the priority (decisions, 2026-11-02): "Variants and staging" below is proposed and
+waiting on three decisions.
 
 ## Done
 
@@ -27,6 +29,12 @@ parts of phase 2 that don't need MCP (channel strips, the smoke-before-add fix) 
   watched save made playing notes late (up to 1.36 s, seen in the post window).
 - **UI v1** (2026-10-29): `engine/ui.scd`, see the phase 3 entry. Engine side: `ps.log` also
   broadcasts `/ps/event/log`. 121 tests.
+- **Legacy sorted** (2026-11-02): `legacy/` split into `breeding-loop/`, `anthropic-sc/` and
+  `claude-api/`, each with a README, all on current models and tested.
+- **Patterns use `\note`** (2026-11-02): every pattern converted from `\midinote`, pitch for pitch,
+  so `\octave` and `\root` work.
+- **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
+  (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
 ## Shape
 
@@ -100,6 +108,40 @@ the UI and the move log are built on top of it.
 - **Patterns:** a flash for each pattern note.
 - **History:** version timeline per synth and the heat map, both from the jsonl files.
 - **Prompt:** prompt box plus a live generation log.
+
+### Variants and staging (proposed 2026-11-03, not started)
+
+Background agents write variations of a synth or pattern while Steph listens; drafts wait in
+staging until kept or dropped. Everything is text in the Claude Code terminal, no GUI.
+
+- **Staging:** `library/_staging/<variant>/`: source, what changed, status (writing / ready /
+  failed).
+- **Engine:** a "stage" define that validates and loads into memory without saving (no version,
+  no history), reusing the history player's in-memory load. The only engine change; needs tests.
+- **Commands** (project slash commands in `.claude/`):
+  - `/vary <name> [n] [direction]`: n background agents, each writing a variant into staging.
+  - `/stage`: list staged variants with status, what changed and peak level.
+  - `/try <variant>`: play it in place of the original (patterns swap on the bar line).
+  - `/keep <variant> [as newName]`: promote it with a normal define.
+  - `/drop <variant>|all`: discard.
+- **Footer:** a Claude Code status line in `.claude/settings.json`, e.g.
+  `▶ growlBassSeq/growlBass · staging: v1 ✓  v2 ⏳ writing  v3 ✗ smoke`. It reads the staging
+  folder and `/ps/status` with a short timeout. It runs in Claude Code, so it can't block the
+  engine. To check: whether it refreshes often enough; if not, a live band above the prompt (a
+  Claude Code mod) instead.
+- **Models:** main session Opus with `/fast` for writing and tweaking; a `variant` agent on
+  Sonnet; a `lookup` agent on Haiku for searches (which synth has X, a UGen's args, a MIDI file).
+- **Doesn't carry across sessions:** agents still writing when a session ends stop. Staged
+  variants stay on disk.
+
+Waiting on Steph:
+1. **Keep makes what?** A new version of the original (proposed default), or a separate entry
+   (`/keep v2 as growlBass2`).
+2. **Engine "stage" define:** OK to add?
+3. **Staging in git:** gitignored like `_failed/` (proposed), or committed?
+Also: is the model split right, and are both `variant` and `lookup` wanted?
+
+Build order once decided: engine stage define, then staging and commands, then status line.
 
 ## Phases
 

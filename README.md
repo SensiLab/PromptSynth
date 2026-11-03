@@ -39,6 +39,11 @@ Evolving Supercollider synths using Large Language Models
 
 ### Prototype (now in [`legacy/`](legacy/README.md)) :
 
+- Nov 2026 : dusted off and sorted into the three approaches it actually was, each with its own README, all running again on current Claude models :
+    - [`breeding-loop/`](legacy/breeding-loop/README.md) : the loop below. Each reply becomes the next template, so the synths "breed".
+    - [`anthropic-sc/`](legacy/anthropic-sc/README.md) : an API client written in sclang. Prompt from the interpreter, pull the code out of the reply, run it or append it to the document.
+    - [`claude-api/`](legacy/claude-api/README.md) : the minimal one. `ask`, text back. Lost to a "bad code" commit in 2025, rescued from git history.
+
 - Dependencies : Claude.ai API / Supercollider / Python
 
 - Steps :
@@ -112,7 +117,8 @@ flowchart LR
 
     - **Pairings** log which pattern version played on which synth version, and when.
     - **Save over a file** while it plays and it reloads (refining, not a new version).
-    - **Patterns** play and stop on the next beat, and swap on the pattern's bar line.
+    - **Patterns** play and stop on the next beat, and swap on the pattern's bar line. Any key can be overridden live (`/ps/pattern/set`) without saving.
+    - **Control channels** : mouse, keys or any OSC value, mapped onto a synth param with a range and warp. The mapping is saved, the movement isn't. Plus **fx** inserted on the mix (a small reverb so far) and **recording** to WAV.
     - **Rules the LLM has to follow** live in [`docs/decisions.md`](docs/decisions.md) and [`docs/cheatsheet.md`](docs/cheatsheet.md) : never read the mouse inside a synth (map a control channel onto a param instead), every synth has envelope params, nothing may block the interpreter (the pattern clock shares it)...
 
 ```mermaid
@@ -132,9 +138,16 @@ flowchart LR
     - Evaluate `engine/ui.scd` for the UI : synths and patterns, each one's trail of versions, an event log, meters, mute, CPU / nodes, and a **history player** that steps back through what played.
     - Then just talk to Claude Code in the repo. Details : [`engine/README.md`](engine/README.md), plan : [`docs/plan.md`](docs/plan.md).
 
+- Recent moves :
+    - **Speed over accuracy.** What matters is the time from prompt to sound, not a perfect first try. I'd rather hear it wrong fast and say what to change.
+    - A **cheat sheet** ([`docs/cheatsheet.md`](docs/cheatsheet.md)) : one page with everything needed to write a synth or pattern, so a session starts writing straight away instead of reading all the docs first.
+    - **Patterns pitch with `\note`**, not `\midinote`, so `\octave` and `\root` work. Every pattern converted, pitch for pitch.
+    - **UI 2** (in progress, `tools/start-engine.sh --ui`) : the other side of the conversation. Claude Code's hooks send what it's doing (prompt, reading, writing, running...) to a window next to what's playing.
+    - **Web UI, stage 1** (in progress, `web/`) : a tiny local Node bridge, no dependencies, serving one page in the browser. It shows what's playing, what Claude Code is doing and each item's trail, with play / stop / solo. The page is still to come; the SC windows stay until it's as good.
+
 - Some of what came out of the sessions (all in `library/`) :
-    - Synths : warmDrone (phase distortion, air, a wooden knock), hollowLog (string + log + pad, then a metal drum), glass with a whisper attack, a Model D style fatMoog, an 808 hat, a dubstep growlBass, harpRecorder (harpsichord + recorder), swimFloat (meditation / floating), birdCall and an Australian magpie.
-    - Patterns : Bach's C major prelude ([WTC I](https://en.wikipedia.org/wiki/Prelude_and_Fugue_in_C_major,_BWV_846)), Vivaldi's [Spring](https://en.wikipedia.org/wiki/The_Four_Seasons_(Vivaldi)) (first 32 bars, notes from the [Mutopia Project](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=301) LilyPond, CC BY-SA), deadmau5-style progressive house, an evolving pattern that never settles, arpeggios of a very famous IV-V-iii-vi.
+    - Synths : warmDrone (phase distortion, air, a wooden knock), hollowLog (string + log + pad, then a metal drum), glass with a whisper attack, a Model D style fatMoog, an 808 hat, a dubstep growlBass, harpRecorder (harpsichord + recorder), swimFloat (meditation / floating), birdCall and an Australian magpie, a Minimoog-style moogBass, fuzzHollow (fuzzy warm hollow, with sparkle and verb) and its 4x warmer lead, and a smallVerb fx.
+    - Patterns : Bach's C major prelude ([WTC I](https://en.wikipedia.org/wiki/Prelude_and_Fugue_in_C_major,_BWV_846)), Vivaldi's [Spring](https://en.wikipedia.org/wiki/The_Four_Seasons_(Vivaldi)) (first 32 bars, notes from the [Mutopia Project](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=301) LilyPond, CC BY-SA), deadmau5-style progressive house, an evolving pattern that never settles, arpeggios of a very famous IV-V-iii-vi, and Debussy's [Clair de lune](https://en.wikipedia.org/wiki/Suite_bergamasque#3._Clair_de_lune) (first 32 bars: the melody on the fuzzHollow lead, the chords as slow arpeggios underneath, from the Mutopia Project MIDI, public domain).
     - The magpie went through research first : the syrinx has two independent voices and the "warble" is frequencies beating against each other, not an LFO ([Suthers, Wild & Kaplan 2011](https://doi.org/10.1007/s00359-010-0585-6)).
 
 - Outcome so far :
@@ -148,6 +161,9 @@ flowchart LR
 - ~~Build more robust ‘play ground’ for testing LLM’s, workflows and prompting strategies.~~ The engine.
 - ~~Archive outputs : code, audio, error, analysis.~~ Versions, prompts, pairings and failures are kept; recording to WAV is in.
 - [MCP](https://modelcontextprotocol.io) (Model Context Protocol) and prompting from inside the SC window : parked. The terminal is better than I expected.
+- **Variants and staging** (next up, [plan](docs/plan.md)) : while I listen, background agents write variations ("darker", "more rhythmic"). They wait in staging until I `/try`, `/keep` or `/drop` them, all typed in the terminal, no GUI. A footer under the prompt shows what's writing, ready or failed. The breeding loop again, but in parallel and I choose.
+- Different models for different jobs : Opus writes and tweaks, Sonnet does the variants, Haiku looks things up. Faster, and cheaper.
+- MIDI files to patterns : a script converts the notes, Claude does the music part (which section, quantise, which synth plays what).
 - Store every save, so the history player can replay the refining too.
 - Analysis as Claude's ears : measure real recordings (e.g. magpies, with [FluCoMa](https://www.flucoma.org)) and turn them into synth parameters.
 - MIDI in, so a note can play a call or a chord.
