@@ -61,7 +61,27 @@ Evolving Supercollider synths using Large Language Models
     - Claude returns some code : (and calls SC to load, interpret and play new Synth Definition code)
     - Each iteration is saved and loaded into SC, so every iteration is archived.
 
-<center><img src="legacy/PromptSynth.jpg" width="80%" alt="The prototype breeding loop running"></center>
+```mermaid
+flowchart LR
+    subgraph r1 [nextSound.py]
+        t1[SynthTemplate.sc]
+        p1[Prompt.txt]
+    end
+    subgraph r2 [nextSound.py]
+        t2[NewSynthTemplate.sc]
+        p2[Prompt.txt]
+    end
+    t1 --> api([Claude.ai API])
+    p1 --> api
+    api --> t2
+    p1 -. same prompt .-> p2
+    t2 --> api2([Claude.ai])
+    p2 --> api2
+    api2 -.-> more([next round...])
+    r1 -.-> sc[Supercollider]
+    api -.-> sc
+    r2 -.-> sc
+```
 
 
 
@@ -142,8 +162,8 @@ flowchart LR
     - **Speed over accuracy.** What matters is the time from prompt to sound, not a perfect first try. I'd rather hear it wrong fast and say what to change.
     - A **cheat sheet** ([`docs/cheatsheet.md`](docs/cheatsheet.md)) : one page with everything needed to write a synth or pattern, so a session starts writing straight away instead of reading all the docs first.
     - **Patterns pitch with `\note`**, not `\midinote`, so `\octave` and `\root` work. Every pattern converted, pitch for pitch.
-    - **UI 2** (in progress, `tools/start-engine.sh --ui`) : the other side of the conversation. Claude Code's hooks send what it's doing (prompt, reading, writing, running...) to a window next to what's playing.
-    - **Web UI, stage 1** (in progress, `web/`) : a tiny local Node bridge, no dependencies, serving one page in the browser. It shows what's playing, what Claude Code is doing and each item's trail, with play / stop / solo. The page is still to come; the SC windows stay until it's as good.
+    - **UI 2** (`tools/start-engine.sh --ui`) : the other side of the conversation. Claude Code's hooks send what it's doing (prompt, reading, writing, running...) to a window next to what's playing.
+    - **Web UI, stage 1** (`tools/start-engine.sh --web`) : a tiny local Node bridge, no dependencies, serving one page in the browser. It shows what's playing, what Claude Code is doing and each item's trail, with play / stop / solo. The SC windows stay until it's as good.
 
 - Some of what came out of the sessions (all in `library/`) :
     - Synths : warmDrone (phase distortion, air, a wooden knock), hollowLog (string + log + pad, then a metal drum), glass with a whisper attack, a Model D style fatMoog, an 808 hat, a dubstep growlBass, harpRecorder (harpsichord + recorder), swimFloat (meditation / floating), birdCall and an Australian magpie, a Minimoog-style moogBass, fuzzHollow (fuzzy warm hollow, with sparkle and verb) and its 4x warmer lead, and a smallVerb fx.
@@ -153,7 +173,7 @@ flowchart LR
 - Outcome so far :
     - The loop is now a conversation : prompt, listen, refine, and every defined version is kept with its prompt.
     - Claude still gets it wrong (a mono "stereo" bass, gain staging that clipped, the odd syntax slip), but it diagnoses and fixes from the numbers and from what I hear.
-    - It also builds the tools : the engine, tests (135 of them), the watcher, the UI, the history player were all made the same way.
+    - It also builds the tools : the engine, tests (139 of them), the watcher, the UI, the history player were all made the same way.
     - Saving over files is the fastest way to refine, but those edits aren't stored yet, so the history player can't replay them.
 
 ### Future : 
