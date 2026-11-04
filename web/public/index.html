@@ -7,13 +7,13 @@
 <style>
   :root {
     --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1d1b; --mute: #7a7872; --line: #e3e1db;
-    --play: #e3f4e1; --playInk: #2c7a3a; --accent: #3b6fd6;
+    --play: #e3f4e1; --playInk: #2c7a3a; --accent: #3b6fd6; --link: #93aee6;
     --reading: #2f66d0; --searching: #7b44c2; --writing: #d0701a; --running: #2c8a45;
     --web: #188a96; --agent: #a23a78; --failed: #c83232; --thinking: #8a8780; --idle: #b5b2ab;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --mute: #9a988f; --line: #33322f;
-      --play: #1f3a23; --playInk: #8fd49a; --thinking: #a7a49c; --idle: #6c6a64; }
+      --play: #1f3a23; --playInk: #8fd49a; --link: #5a76b0; --thinking: #a7a49c; --idle: #6c6a64; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 ui-sans-serif, -apple-system, system-ui, sans-serif; }
@@ -30,6 +30,11 @@
   @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
   li { cursor: pointer; }
   li.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+  /* the selection's partner: a pattern's synth, or the patterns playing a synth */
+  li.linked { outline: 2px dashed var(--link); outline-offset: -2px; }
+  .hist .change { display: block; padding-left: 2ch; color: var(--mute); overflow-wrap: anywhere; }
+  .hist li.cur .change { color: inherit; opacity: .8; }
+  .hist li.missing { opacity: .45; cursor: default; }
   #detailTitle { font: 600 20px ui-monospace, Menlo, monospace; margin: 2px 0; overflow-wrap: anywhere; }
   #detailSub { color: var(--mute); font: 13px ui-monospace, Menlo, monospace; margin-bottom: 10px; }
   #playBtn { font-size: 16px; padding: 8px 22px; border-radius: 8px; margin-bottom: 14px; }
@@ -127,7 +132,7 @@
     <button id="playBtn" disabled>play</button>
     <h2>trail <span class="h" id="trailCount"></span></h2>
     <ul class="trail" id="trail"></ul>
-    <h2 style="margin-top:16px">history (click a step to play it)</h2>
+    <h2 style="margin-top:16px">history of making (click a step to play it)</h2>
     <ul class="trail hist" id="hist"></ul>
     <div class="histBar">
       <button id="prevBtn">◀ prev</button><button id="nextBtn">next ▶</button><button id="latestBtn">latest</button>
@@ -166,48 +171,58 @@
   const send = (cmd, name, extra = {}) => ws && ws.readyState === 1 && ws.send(JSON.stringify({ cmd, name, ...extra }));
   const entryOf = (st, sel) => sel && st && (sel.kind === "synth" ? st.synths : st.patterns).find((e) => e.name === sel.name);
 
-  // --- history player (as in engine/ui2.scd) ---
-  let steps = [], stepIndex = null, hidden = 0, histActive = false;
+  // --- history player: the history of making the selected pairing (the pattern and its synth,
+  // every version of either, in order, with its prompt); a step plays that pattern version on
+  // that synth version. A synth on its own: its versions ---
+  let steps = [], stepIndex = null, histActive = false;
+  function requestSteps() { if (selected) send("history/steps", selected.name, { kind: selected.kind }); }
   function showHistory(res) {
     if (!selected || res.name !== selected.name || res.kind !== selected.kind) return;
-    const all = res.steps;
-    steps = all.filter((s) => s.playable);
-    // hiding unstored steps can leave the same versions twice in a row: keep one
-    steps = steps.filter((s, i) => i === 0 || ["pattern", "patternHash", "synthHash"].some((k) => steps[i - 1][k] !== s[k]));
-    hidden = all.length - steps.length;
-    if (!steps.length || !steps[steps.length - 1].current) steps.push({ now: true, current: true, pattern: all.at(-1)?.pattern });
-    stepIndex = histActive ? null : steps.length - 1;   // not playing history: what plays is the current files
+    steps = res.steps.slice();
+    if (!steps.length || !steps[steps.length - 1].current) steps.push({ now: true, current: true, pattern: res.steps.at(-1)?.pattern });
+    if (!histActive) stepIndex = steps.length - 1;   // not playing history: what plays is the current files
     renderHistory();
   }
-  function renderHistory() {
-    $("hist").innerHTML = steps.map((s, i) => `<li data-i="${i}" class="${i === stepIndex ? "cur" : ""}">${i === stepIndex ? "▶" : "&nbsp;"} ` +
-      (s.now ? "now: the current files" : `<span class="h">${esc((s.time ?? "").slice(5, 16).replace("T", " "))}</span>  ${esc(s.pattern)} ${esc(s.patternHash)}  on ${esc(s.synth)} ${esc(s.synthHash)}${s.current ? "  (now)" : ""}`) + "</li>").join("");
-    for (const li of $("hist").children) li.onclick = () => loadStep(Number(li.dataset.i));
-    $("histLabel").textContent = (histActive ? `playing history: step ${(stepIndex ?? 0) + 1} of ${steps.length}` : "latest versions")
-      + (hidden ? `   (${hidden} saved-over steps hidden: not stored)` : "");
+  const when = (t) => esc((t ?? "").slice(5, 16).replace("T", " "));
+  function stepLine(s) {
+    if (s.now) return "now: the current files (edited in place)";
+    return `<span class="h">${when(s.time)}  ${esc(s.change)} ${esc(s.change === "synth" ? s.synthHash : s.patternHash)}</span>`
+      + `<span class="change">${esc(s.step)}</span>`;
   }
+  function renderHistory() {
+    $("hist").innerHTML = steps.map((s, i) => `<li data-i="${i}" class="${i === stepIndex ? "cur" : ""}${s.now || s.playable ? "" : " missing"}">`
+      + `${i === stepIndex ? "▶" : "&nbsp;"} ${stepLine(s)}</li>`).join("");
+    for (const li of $("hist").children) li.onclick = () => loadStep(Number(li.dataset.i));
+    $("histLabel").textContent = histActive ? `playing history: step ${(stepIndex ?? 0) + 1} of ${steps.length}` : "latest versions";
+    $("hist").querySelector("li.cur")?.scrollIntoView({ block: "nearest" });
+  }
+  const playableAt = (i) => steps[i] && (steps[i].now || steps[i].playable);
   function loadStep(i) {
     const s = steps[i];
-    if (!s || !selected) return;
+    if (!s || !selected || !playableAt(i)) return;
     stepIndex = i;
     renderHistory();
     if (s.current) { send("history/end"); if (s.pattern) setTimeout(() => send("solo", s.pattern, { kind: "pattern" }), 300); }
     else send("history/load", selected.name, { kind: selected.kind, index: s.index });
   }
-  $("prevBtn").onclick = () => loadStep(Math.max(0, (stepIndex ?? steps.length) - 1));
-  $("nextBtn").onclick = () => loadStep(Math.min(steps.length - 1, (stepIndex ?? -1) + 1));
+  const stepFrom = (i, dir) => { for (let j = i + dir; j >= 0 && j < steps.length; j += dir) if (playableAt(j)) return j; return null; };
+  $("prevBtn").onclick = () => { const j = stepFrom(stepIndex ?? steps.length, -1); if (j != null) loadStep(j); };
+  $("nextBtn").onclick = () => { const j = stepFrom(stepIndex ?? -1, 1); if (j != null) loadStep(j); };
   $("latestBtn").onclick = () => send("history/end");
   function historyReply(m) {
     if (m.path === "history/steps") showHistory(m.res);
     else if (m.path === "history/load") addLine($("log"), m.res.ok === false ? "history: " + (m.res.errors ?? []).join("; ")
       : `history step ${(stepIndex ?? 0) + 1}: pattern ${m.res.pattern}, synth ${m.res.synth}`);
-    else if (m.path === "history/end" && selected) { histActive = false; send("history/steps", selected.name, { kind: selected.kind }); }
+    else if (m.path === "history/end") { histActive = false; requestSteps(); }
   }
 
-  function select(kind, name) {
+  // a click tells the bridge, which shares the focus with other pages and the terminal
+  function select(kind, name) { send("select", name, { kind }); showFocus(kind, name); }
+  function showFocus(kind, name) {
+    if (selected && selected.kind === kind && selected.name === name) return;
     selected = { kind, name };
     trailHash = null;
-    send("history/steps", name, { kind });
+    requestSteps();
     lastLists = "";
     if (lastSt) status(lastSt);
   }
@@ -243,6 +258,14 @@
     $("trail").innerHTML = items.join("");
   }
 
+  const isLinkedName = (kind, name) => isLinked(kind, kind === "synth" ? { name } : (lastSt?.patterns.find((p) => p.name === name) ?? {}));
+  // a pattern's synth, or a synth's patterns: what the selection plays with
+  function isLinked(kind, it) {
+    if (!selected || selected.kind === kind) return false;
+    if (kind === "synth") return entryOf(lastSt, selected)?.synth === it.name;
+    return it.synth === selected.name;
+  }
+
   function list(el, items, kind) {
     el.innerHTML = "";
     for (const it of items) {
@@ -250,6 +273,7 @@
       if (it.playing) li.className = "playing";
       const sub = kind === "pattern" ? "→ " + it.synth : it.kind;
       if (selected && selected.kind === kind && selected.name === it.name) li.className += " selected";
+      else if (isLinked(kind, it)) li.className += " linked";
       li.innerHTML = `<span>${it.playing ? "▶" : "&nbsp;"}</span><span class="name">${esc(it.name)}</span><span class="sub">${esc(sub)}</span>`;
       li.onclick = () => select(kind, it.name);
       el.appendChild(li);
@@ -269,13 +293,20 @@
     details(st);
   }
 
+  // a finished tool stays on show until the next one: most take ~50 ms, too short to see.
+  // "thinking" only after 2 s with nothing new
+  let thinkTimer = null;
   function cc(m) {
     let shown = m.kind;
+    clearTimeout(thinkTimer);
+    if (m.kind === "done" || m.kind === "failed") {
+      if (m.kind === "failed") addLine($("ccFeed"), "failed   " + m.detail);
+      thinkTimer = setTimeout(() => cc({ kind: "thinking", detail: "" }), 2000);
+      return;
+    }
     if (m.kind === "prompt") { $("ccPrompt").textContent = m.detail; promptAt = Date.now(); shown = "thinking"; addLine($("ccFeed"), "prompt   " + m.detail); }
-    else if (m.kind === "done") shown = "thinking";
-    else if (m.kind === "failed") { addLine($("ccFeed"), "failed   " + m.detail); shown = "thinking"; }
     else if (m.kind === "idle") { promptAt = null; addLine($("ccFeed"), "done"); }
-    else addLine($("ccFeed"), m.kind.padEnd(9) + m.detail);
+    else if (m.kind !== "thinking") addLine($("ccFeed"), m.kind.padEnd(9) + m.detail);
     $("ccState").textContent = (shown === "idle" ? "○ " : "● ") + shown;
     $("ccState").style.color = `var(${colors[shown] ?? "--thinking"})`;
     $("ccDetail").textContent = ["thinking", "idle"].includes(shown) ? "" : m.detail;
@@ -289,6 +320,8 @@
       : m.name === "defined" ? `new version: ${a.join(" ")}`
       : m.name === "panic" ? "panic: everything stopped" : null;
     if (text) addLine($("log"), text);
+    // a new version of the selection or its partner adds a step
+    if (m.name === "defined" && selected && (m.args[1] === selected.name || isLinkedName(m.args[0], m.args[1]))) requestSteps();
   }
 
   setInterval(() => {
@@ -306,6 +339,7 @@
       else if (m.type === "cc") cc(m);
       else if (m.type === "trail") showTrail(m);
       else if (m.type === "history") historyReply(m);
+      else if (m.type === "focus") showFocus(m.kind, m.name);
       else if (m.type === "log") addLine($("log"), m.text);
       else if (m.type === "engine" && !m.up) $("engine").innerHTML = `engine <b class="down">not responding</b>`;
     };

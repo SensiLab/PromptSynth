@@ -24,4 +24,12 @@ browser  <--WebSocket /ws-->  web/server.mjs  <--OSC/UDP-->  engine (57120)
   bridge's OSC port (57130), `PS_WEB_PORT` the page (8090).
 - Claude Code's activity comes from the project hooks in `.claude/settings.json`; `cc-hook.mjs`
   sends each event to both the engine (for `engine/ui2.scd`) and this bridge.
-- Next stages (see `docs/plan.md` notes): trail and history player, analysis views in WebGL.
+- **Focus**, shared by the page and the terminal: clicking an item, a new version of one, or
+  one starting to play makes it the current item, on every open page. The bridge writes it with
+  what's playing to `.run/focus.json`, and `tools/cc-context.mjs` (a `UserPromptSubmit` hook)
+  adds it to each Claude Code prompt, so "this" can mean what's selected.
+- **History of making:** select a pattern and the history lists every version of it and of its
+  synth, in the order they were made, with the prompt for each. A step plays that pattern
+  version on that synth version.
+- Selecting a pattern also marks its synth (dashed), and selecting a synth marks its patterns.
+- Next stages (see `docs/plan.md` notes): analysis views in WebGL.

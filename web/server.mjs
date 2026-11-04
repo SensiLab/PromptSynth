@@ -9,6 +9,10 @@
 //   history            history/steps, history/load, history/end -> the engine's history player
 //   trail              the selected item's versions and what each prompt changed, read from
 //                      the library's history.jsonl / info.json (no engine involved)
+//   focus              the current item, shared by every page and the terminal: set by a click
+//                      (select), a new version, or something starting to play. Written with
+//                      what's playing to .run/focus.json (PS_RUN_DIR), which tools/cc-context.mjs
+//                      adds to each Claude Code prompt; removed when the bridge stops.
 //
 // Plain Node, no dependencies (the WebSocket is the minimum of RFC 6455 for one local page).
 // Local only: it listens on 127.0.0.1. Env: PS_PORT engine port (57120), PS_WEB_OSC_PORT this
@@ -24,6 +28,8 @@ const enginePort = Number(process.env.PS_PORT ?? 57120);
 const oscPort = Number(process.env.PS_WEB_OSC_PORT ?? 57130);
 const httpPort = Number(process.env.PS_WEB_PORT ?? 8090);
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
+const runDir = process.env.PS_RUN_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".run");
+const focusFile = path.join(runDir, "focus.json");
 
 // --- OSC (strings, floats, ints) ---
 const pad4 = (buf) => Buffer.concat([buf, Buffer.alloc(4 - (buf.length % 4))]);
@@ -121,8 +127,33 @@ function trail(kind, name) {
     synth: kind === "pattern" ? entry?.synth : undefined, itemKind: kind === "synth" ? entry?.kind : undefined };
 }
 
+// --- the focus: what the page shows and what "this" means in the terminal ---
+let focus = null, lastFocusJson = "";
+function setFocus(kind, name) {
+  if (!name || (kind !== "synth" && kind !== "pattern")) return;
+  if (focus && focus.kind === kind && focus.name === name) return;
+  focus = { kind, name };
+  broadcast({ type: "focus", ...focus });
+  writeFocus();
+}
+function writeFocus() {
+  const playing = lastStatus ? [
+    ...lastStatus.patterns.filter((p) => p.playing).map((p) => ({ kind: "pattern", name: p.name, synth: p.synth })),
+    ...lastStatus.synths.filter((y) => y.playing).map((y) => ({ kind: "synth", name: y.name })),
+  ] : [];
+  const entry = focus && lastStatus && (focus.kind === "synth" ? lastStatus.synths : lastStatus.patterns).find((e) => e.name === focus.name);
+  const json = JSON.stringify({ pid: process.pid, selected: focus && { ...focus, synth: focus.kind === "pattern" ? entry?.synth : undefined }, playing });
+  if (json === lastFocusJson) return;
+  lastFocusJson = json;
+  try { fs.mkdirSync(runDir, { recursive: true }); fs.writeFileSync(focusFile, json + "\n"); } catch {}
+}
+const removeFocus = () => { try { fs.unlinkSync(focusFile); } catch {} };
+process.on("exit", removeFocus);
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => process.exit(0));
+
 // --- commands the page may send ---
 const commands = {
+  "select": (a) => setFocus(a.kind, a.name),
   "pattern/play": (a) => toEngine("/ps/pattern/play", [a.name]),
   "pattern/stop": (a) => toEngine("/ps/pattern/stop", [a.name]),
   "synth/play": (a) => toEngine("/ps/synth/play", [a.name]),
@@ -156,11 +187,17 @@ osc.on("message", (buf) => {
   if (m.addr === "/ps/result") {
     let r = null;
     try { r = JSON.parse(m.args[1]); } catch {}
-    if (m.args[0] === "status" && r) { lastStatusAt = Date.now(); lastStatus = r; broadcast({ type: "status", status: r }); }
+    if (m.args[0] === "status" && r) { lastStatusAt = Date.now(); lastStatus = r; broadcast({ type: "status", status: r }); writeFocus(); }
     else if (String(m.args[0]).startsWith("history/") && r) broadcast({ type: "history", path: m.args[0], res: r });
     else if (r && r.ok === false) broadcast({ type: "log", text: `${m.args[0]} failed: ${(r.errors ?? []).join("; ")}` });
   } else if (m.addr.startsWith("/ps/event/")) {
-    broadcast({ type: "event", name: m.addr.slice(10), args: m.args });
+    const ev = m.addr.slice(10), a = m.args;
+    // the terminal's work moves the focus: a new version, or something that starts playing (a
+    // playing pattern is re-announced when its synth or source changes: that doesn't move it)
+    if (ev === "defined") setFocus(a[0], a[1]);
+    else if (ev === "pattern" && a[1] === 1 && !lastStatus?.patterns.find((p) => p.name === a[0])?.playing) setFocus("pattern", a[0]);
+    else if (ev === "synth" && a[1] === 1) setFocus("synth", a[0]);
+    broadcast({ type: "event", name: ev, args: a });
   } else if (m.addr === "/cc/event") {
     broadcast({ type: "cc", event: m.args[0] ?? "", kind: m.args[1] ?? "", detail: m.args[2] ?? "" });
   }
@@ -186,6 +223,7 @@ server.on("upgrade", (req, sock) => {
   sock.on("close", () => clients.delete(sock));
   sock.on("error", () => clients.delete(sock));
   wsSend(sock, JSON.stringify({ type: "engine", up: engineUp }));
+  if (focus) wsSend(sock, JSON.stringify({ type: "focus", ...focus }));
   wsFrames(sock, (text) => {
     let msg;
     try { msg = JSON.parse(text); } catch { return; }
