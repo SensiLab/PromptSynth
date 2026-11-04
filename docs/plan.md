@@ -36,6 +36,10 @@ waiting on three decisions.
 - **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
   (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
+- **Watcher catches every save** (2026-11-04): a save made while a reload ran was lost (the
+  define recorded the file's hash after compiling, so the newer save looked loaded, and same-second
+  saves looked unchanged). Defines now hash the code they compiled; the watcher rechecks content
+  after a reload and while a file is under 2 s old. 152 tests.
 - **History of making** (2026-11-04): the history player lists a pairing's versions (the pattern's
   and its synth's, with their prompts) in the order they were made, not what was played.
 - **Mappings in the synth file** (2026-11-04): `metadata: (map: (...))`, applied on define; the

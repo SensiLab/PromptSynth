@@ -85,6 +85,8 @@ tests = {
 	// the engine hashes in sclang; it must agree with shasum, which named every stored version
 	check.("fileHash matches shasum", ["pad.scd", "texture.scd", "pattern.scd", "syntax.scd"].every { |f|
 		ps.fileHash(fx.(f)) == ("shasum -a 1 " ++ fx.(f).shellQuote).unixCmdGetStdOut.keep(12) });
+	check.("sourceHash of the text matches fileHash", ["pad.scd", "texture.scd", "pattern.scd"].every { |f|
+		ps.sourceHash(File.readAllString(fx.(f))) == ps.fileHash(fx.(f)) });
 	check.("history line with info", lines.(lib +/+ "synths/pad/history.jsonl").size == 1 and: {
 		lines.(lib +/+ "synths/pad/history.jsonl")[0].parseJSON["info"]["prompt"] == "warm \"saw\" pad" });
 	check.("pad info.json verbatim", File.readAllString(lib +/+ "synths/pad/info.json").parseJSON["prompt"] == "warm \"saw\" pad");
@@ -144,6 +146,20 @@ tests = {
 	check.("unknown param errors", res.notNil and: { has.(res["errors"], "no param") }, res);
 	res = send.('/ps/synth/play', \ghost);
 	check.("unknown synth errors", res.notNil and: { has.(res["errors"], "unknown synth") }, res);
+
+	"-- a save while a reload runs".postln;
+	// the file is saved again while the define is running (smoke test): the hash it records must
+	// be of the code it compiled, so the watcher sees the new save as a change
+	path = lib +/+ "race.scd";
+	File.use(path, "w", { |f| f.write(File.readAllString(fx.("pad.scd"))) });
+	v = nil;
+	Routine { v = ps.runDefine(\race, path, nil, (save: false)) }.play(SystemClock);
+	0.05.wait;
+	File.use(path, "w", { |f| f.write(File.readAllString(fx.("pad_v2.scd"))) });
+	ps.waitFor(10, { v.notNil });
+	check.("define records the hash of what it compiled, not of a later save",
+		v.notNil and: { v[\hash] == ps.fileHash(fx.("pad.scd")) } and: { v[\hash] != ps.fileHash(path) }, v !? { v[\hash] });
+	File.delete(path);
 
 	"-- redefine while playing".postln;
 	res = define.(\pad, "pad_v2.scd");

@@ -231,7 +231,7 @@ runDefine: { |self, name, path, infoJson, opts|
 			(name: p[\name], rate: p[\rate], default: p[\default], spec: self.specJSON(p[\spec]))
 		};
 		e = self.registerEntry(def, check[\kind], res[\source], params, check[\channels], check[\hasGate]);
-		e[\hash] = if (opts[\save]) { self.saveSynth(name, src, infoJson, res) } { self.fileHash(path) };
+		e[\hash] = if (opts[\save]) { self.saveSynth(name, src, infoJson, res) } { self.sourceHash(src) };
 		res[\hash] = e[\hash];
 		res[\warnings].addAll(self.followSynth(e[\name]));
 		res[\warnings].addAll(e[\mapWarnings]);

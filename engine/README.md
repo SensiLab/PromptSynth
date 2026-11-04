@@ -155,8 +155,10 @@ While something plays, the engine watches its library file and reloads it when y
 the `pattern.scd` of each playing pattern, its synth's `synthdef.scd`, and the `synthdef.scd` of
 each playing synth instance. It checks `File.mtime` every 0.5 s and reloads when the content
 differs from the loaded version, through the same define path as at boot: no new version, history
-line or meta (the hash in `/ps/status` and `pairings.jsonl` is the edited file's). Synths still get
-the smoke test. If the edit doesn't compile, evaluate or pass the contract check, the previous version
+line or meta (the hash in `/ps/status` and `pairings.jsonl` is that of the code it compiled). Synths
+still get the smoke test. Saves close together are all caught: mtimes are whole seconds, so while
+a file was written in the last 2 s its content is compared on every tick, and after each reload
+the next tick compares it again (a save made while the reload ran). If the edit doesn't compile, evaluate or pass the contract check, the previous version
 keeps playing. A file edited while stopped
 is picked up as soon as it plays. It all goes to the post window:
 

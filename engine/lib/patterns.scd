@@ -129,7 +129,7 @@ definePattern: { |self, name, path, synth, infoJson, save = true|
 		keys.remove(\bar);
 		p = (name: name, synth: binding, userPattern: pat, overrides: IdentityDictionary(),
 			keys: keys, fixed: fixed.notNil, bar: bar ? 4);
-		p[\hash] = if (save) { self.saveSource(self.patternDir(name), "pattern.scd", src, infoJson) } { self.fileHash(path) };
+		p[\hash] = if (save) { self.saveSource(self.patternDir(name), "pattern.scd", src, infoJson) } { self.sourceHash(src) };
 		self.patterns[name] = p;
 		if (save) { self.writePatternMeta(p) };
 		self.updatePdef(p);

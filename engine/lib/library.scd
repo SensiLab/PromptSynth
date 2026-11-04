@@ -17,10 +17,19 @@ patternDir: { |self, name| self.libraryDir +/+ "patterns" +/+ name.asString },
 // running shasum, because starting a shell from sclang blocks the interpreter (and every playing
 // pattern with it) for most of a second. sclang Integers are 32-bit and wrap, as SHA-1 needs.
 fileHash: { |self, path|
-	var bytes, n, w = Array.newClear(80), hex = "0123456789abcdef";
+	var bytes;
+	File.use(path, "rb", { |f| bytes = Int8Array.newClear(f.length); f.read(bytes) });
+	self.bytesHash(bytes)
+},
+
+// the same hash of source text already read: what a define compiled, so the hash it records is
+// of that code even if the file was saved again while the define ran
+sourceHash: { |self, str| self.bytesHash(str.ascii) },
+
+bytesHash: { |self, bytes|
+	var n, w = Array.newClear(80), hex = "0123456789abcdef";
 	var h = [1732584193, -271733879, -1732584194, 271733878, -1009589776];
 	var rotl = { |x, s| (x << s) | (x >> (32 - s)).bitAnd((1 << s) - 1) };
-	File.use(path, "rb", { |f| bytes = Int8Array.newClear(f.length); f.read(bytes) });
 	n = bytes.size;
 	// padding: 0x80, zeros up to 56 mod 64, then the length in bits as 64-bit big-endian
 	bytes = bytes.asArray.collect(_.bitAnd(255)) ++ [128] ++ (0 ! ((55 - n) % 64))

@@ -36,7 +36,9 @@ watchTick: { |self|
 	self[\watched] = labels;
 	targets.do { |t|
 		var mtime = File.mtime(t[\path]);
-		if (mtime != self[\watchMtimes][t[\path]]) {
+		// mtimes are whole seconds: a second save in the same second looks unchanged, so while a
+		// file was written in the last 2 seconds its content is compared on every tick
+		if (mtime != self[\watchMtimes][t[\path]] or: { Date.getDate.rawSeconds - mtime < 2 }) {
 			self[\watchMtimes][t[\path]] = mtime;
 			if (self.fileHash(t[\path]) != self.loadedHash(t)) { self.watchReload(t) };
 		}
@@ -56,6 +58,8 @@ watchReload: { |self, t|
 	} {
 		self.log("watch: % didn't reload, see the error above".format(t[\label]))
 	};
+	// a save made while this ran: the next tick compares the content again, whatever the mtime
+	self[\watchMtimes][t[\path]] = nil;
 },
 
 // call again after Cmd-period, which stops every routine
