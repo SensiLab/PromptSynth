@@ -16,6 +16,8 @@ changes, update `docs/cheatsheet.md` too.
 - Start headless with `tools/start-engine.sh` (`--views` opens the analysis views, `engine/views.scd`;
   `--ui` opens UI 2, `engine/ui2.scd`, which shows Claude Code's activity via the hooks in `.claude/settings.json`;
   `--web` also starts the web UI bridge, `web/server.mjs`, on http://127.0.0.1:8090/).
+- End a session with `tools/stop-engine.sh` (or Ctrl-C in its terminal); never stop processes by name:
+  it uses only the PIDs in `.run/session.pids`. Tests: own ports, own `PS_RUN_DIR`, stop only your own PIDs.
 - Never block the engine's interpreter (no `unixCmdGetStdOut`, no per-frame file reads): the
   pattern clock shares it, and stalls make notes late.
 - `legacy/` is the old prototype; leave it alone unless asked.

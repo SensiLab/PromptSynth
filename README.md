@@ -154,7 +154,9 @@ flowchart LR
 ```
 
 - Running it :
+    - New machine? Start with [`docs/install.md`](docs/install.md) : SuperCollider, plugins, Node, Claude Code and the analysis views.
     - `tools/start-engine.sh` starts the engine headless, post window in the terminal. `--views` also opens the analysis views (mel spectrogram, bands, MFCCs, stereo field).
+    - End a session with Ctrl-C there or `tools/stop-engine.sh` from anywhere : the engine saves its settings, quits scsynth and exits, and the bridge goes with it. Nothing left running.
     - Evaluate `engine/ui.scd` for the UI : synths and patterns, each one's trail of versions, an event log, meters, mute, CPU / nodes, and a **history player** that steps back through what played.
     - Then just talk to Claude Code in the repo. Details : [`engine/README.md`](engine/README.md), plan : [`docs/plan.md`](docs/plan.md).
 

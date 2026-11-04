@@ -59,6 +59,12 @@ oscCommands: { |self|
 		'/ps/tempo': [{ |args| self.setTempo(args[0] ?? { Error("missing bpm").throw }) }, false],
 		'/ps/master/amp': [{ |args| self.setMasterAmp(args[0] ?? { Error("missing amp").throw }) }, false],
 		'/ps/panic': [{ self.panic }, false],
+		// replies, then stops everything, saves the settings, quits scsynth and exits sclang
+		'/ps/quit': [{ |args, addr|
+			self.reply(addr, '/ps/quit', (ok: true));
+			{ 0.2.wait; self.quitEngine }.fork(SystemClock);
+			nil
+		}, true],
 
 		// history player (engine/lib/history.scd): steps of a pattern's or synth's pairings, load
 		// one by its index in that list (old versions in memory only), back to the latest

@@ -21,7 +21,7 @@ if (!address?.startsWith("/")) {
 const alwaysReply = new Set([
   "/ps/ping", "/ps/status", "/ps/subscribe", "/ps/unsubscribe", "/ps/synth/define",
   "/ps/param/get", "/ps/pattern/define", "/ps/pattern/default", "/ps/pattern/play", "/ps/pattern/get",
-  "/ps/channel/list", "/ps/map", "/ps/unmap", "/ps/rec/start", "/ps/rec/stop", "/ps/library/reload",
+  "/ps/channel/list", "/ps/map", "/ps/unmap", "/ps/rec/start", "/ps/rec/stop", "/ps/library/reload", "/ps/quit",
 ]);
 
 const pad4 = (buf) => Buffer.concat([buf, Buffer.alloc(4 - (buf.length % 4))]);

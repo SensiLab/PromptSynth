@@ -9,7 +9,7 @@ tools/start-engine.sh --web    # the engine and the bridge, then open http://127
 ```
 
 Or run the bridge on its own next to a running engine: `node web/server.mjs` from the repo root.
-With `--web` the bridge stops when the engine does.
+With `--web` the bridge stops when the engine does: Ctrl-C there, or `tools/stop-engine.sh`.
 
 ```
 browser  <--WebSocket /ws-->  web/server.mjs  <--OSC/UDP-->  engine (57120)

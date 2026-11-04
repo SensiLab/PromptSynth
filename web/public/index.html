@@ -77,6 +77,14 @@
   #hist { flex: 3 1 0; max-height: none; min-height: 60px; }
   #ccFeed { flex: 1 1 0; max-height: none; min-height: 50px; }
   footer section { height: clamp(90px, 18vh, 200px); display: flex; flex-direction: column; }
+  /* always-visible scrollbars: macOS hides overlay scrollbars until you scroll, so a list that
+     scrolls looked like it didn't */
+  #patterns, #synths, #trail, #hist, #ccFeed, #log { scrollbar-gutter: stable; }
+  #patterns::-webkit-scrollbar, #synths::-webkit-scrollbar, #trail::-webkit-scrollbar, #hist::-webkit-scrollbar,
+  #ccFeed::-webkit-scrollbar, #log::-webkit-scrollbar { width: 9px; }
+  #patterns::-webkit-scrollbar-thumb, #synths::-webkit-scrollbar-thumb, #trail::-webkit-scrollbar-thumb, #hist::-webkit-scrollbar-thumb,
+  #ccFeed::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
+  #patterns::-webkit-scrollbar-thumb:hover, #synths::-webkit-scrollbar-thumb:hover { background: var(--mute); }
   #log { flex: 1 1 0; max-height: none; min-height: 0; }
   /* medium windows: Claude Code goes under the list and the details */
   @media (max-width: 1100px) {

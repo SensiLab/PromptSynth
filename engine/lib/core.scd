@@ -46,8 +46,23 @@ startEngine: { |self|
 		self.startWatch;
 		self.isReady = true;
 		self.log("ready engine=% langPort=% library=%".format(self.engineVersion, NetAddr.langPort, self.libraryDir));
+		// tools/start-engine.sh's session file: the stop script sends /ps/quit to this port only
+		"PS_PIDFILE".getenv !? { |f| File.use(f, "a", { |h| h.write("langport %\n".format(NetAddr.langPort)) }) };
 		self.broadcast('/ps/event/ready', NetAddr.langPort);
 	}, onFailure: { self.log("ERROR: server failed to boot") });
+},
+
+// a clean end: stop everything, save the settings, stop the engine, quit scsynth, exit sclang.
+// /ps/quit and tools/stop-engine.sh use it; stopping sclang with a signal instead leaves scsynth
+// running. Call from a Routine.
+quitEngine: { |self|
+	if (self.isReady == true) { self.panic };
+	self.recPath !? { try { self.stopRec } };
+	self.saveState;
+	self.stopEngine;
+	self.log("quitting");
+	if (self.server.serverRunning) { self.server.quit; self.waitFor(5, { self.server.serverRunning.not }) };
+	0.exit;
 },
 
 stopEngine: { |self|

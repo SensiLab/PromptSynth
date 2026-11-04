@@ -36,6 +36,10 @@ waiting on three decisions.
 - **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
   (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
+- **Sessions end cleanly** (2026-11-04): `/ps/quit` (stop everything, save state, quit scsynth,
+  exit). `tools/start-engine.sh` records its PIDs and the engine's port in `.run/session.pids`;
+  Ctrl-C or `tools/stop-engine.sh` uses only those, never process names. 139 tests.
+
 ## Shape
 
 ```

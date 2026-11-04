@@ -14,6 +14,14 @@ PS_SERVER_PORT=57140 sclang engine/main.scd     # own scsynth, e.g. next to an I
 ```
 
 Or open `engine/main.scd` in the SC IDE and evaluate it. Settings are in `engine/config.scd`.
+
+**Sessions:** `tools/start-engine.sh [--ui] [--views] [--web]` starts the engine (and the web
+bridge with `--web`) and records the session's PIDs and the engine's OSC port in
+`.run/session.pids`. End it with **Ctrl-C** in that terminal or **`tools/stop-engine.sh`** from
+anywhere: both send `/ps/quit` to that port, so the engine stops everything, saves its settings,
+quits scsynth and exits; a second Ctrl-C, or the stop script after 8 s, stops sclang and its
+scsynth by PID. A second start is refused while a session runs. Stopping sclang with a plain
+signal instead leaves scsynth running (it only quits it on a normal exit).
 When the engine is up it posts `[ps] ready engine=0.2.0 langPort=57120 library=...`. The port is
 57121+ if 57120 was taken, for example by an open IDE. `/ps/ping` reports the engine version
 and start time, so you can confirm a reload took.
@@ -227,6 +235,7 @@ The others only answer when they fail (`"ok":false,"errors":[...]`).
 | `/ps/tempo` | `bpm` | |
 | `/ps/master/amp` | `amp` | 0..2, before the limiter (ceiling -1 dBFS) |
 | `/ps/panic` | | stop all patterns, free all synths |
+| `/ps/quit` | | *reply*, then stop everything, save settings, quit scsynth and exit sclang (`tools/stop-engine.sh` uses it) |
 | `/ps/history/steps` | `kind name` | *reply* the history player's steps for a pattern or synth (its pairings, oldest first): `index, time, pattern, patternHash, synth, synthHash, playable, current` |
 | `/ps/history/load` | `kind name index` | *reply* load that step's versions in memory (no new version, no history line) and play its pattern |
 | `/ps/history/end` | | *reply* back to the latest versions, with the settings from before the player started |

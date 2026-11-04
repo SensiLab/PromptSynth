@@ -25,3 +25,6 @@ library/_recordings/
 
 # failed definitions archive: local debugging data
 library/_failed/
+
+# running session: PIDs written by tools/start-engine.sh
+.run/
