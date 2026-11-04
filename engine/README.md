@@ -135,8 +135,9 @@ it again replaces it; it reopens itself after an engine restart and survives Cmd
   first) from `/ps/event/*`, plus a warning when the pattern clock wakes more than 150 ms late (the
   interpreter was blocked). A **master meter** of the hardware outs, after the limiter.
 - **Analysis window** (button): freq scope and scope of the outs.
-- **History player:** the selected item's pairings (which pattern version played on which synth
-  version, oldest first). Click a step, or prev / next, to load and play it: old versions load in
+- **History player:** the history of making the selected pairing: the pattern's and its synth's
+  versions (each with its prompt) in the order they were made, oldest first; a synth on its own
+  lists its versions. Click a step, or prev / next, to load and play it: old versions load in
   memory only (no new version, no history line), and the pattern swaps on its bar line. ▶ marks
   the step that's playing. **latest** puts the newest versions back with the values
   and mappings they had when the player started (closing the UI does too). While it plays,
@@ -177,6 +178,13 @@ A mapping runs a `ps_mapper` synth that reads the channel and writes the param's
 `/ps/map warmDrone pdAmount mouseX 0 2 lin`. min/max/warp default to the param's spec. Warps:
 `lin`, `exp`, `amp`, or a curve number. While a param is mapped, `/ps/param/set` still records
 the value, and it applies again on `/ps/unmap`.
+
+A synth can declare its mappings in its code, next to its specs:
+`metadata: (specs: (...), map: (timbre: [\mouseX, 0, 1, \lin], sweep: \mouseY))` (min, max and warp
+optional, as for `/ps/map`). Defining the synth applies them. As with defaults, the code wins:
+a declaration that is new or changed is applied over a live mapping, one that's dropped is
+unmapped, and an unchanged one leaves live `/ps/map` and `/ps/unmap` changes alone (also across
+restarts: `_state.json` keeps what was declared). A bad declaration is a define warning.
 
 ## Library layout
 
@@ -236,7 +244,7 @@ The others only answer when they fail (`"ok":false,"errors":[...]`).
 | `/ps/master/amp` | `amp` | 0..2, before the limiter (ceiling -1 dBFS) |
 | `/ps/panic` | | stop all patterns, free all synths |
 | `/ps/quit` | | *reply*, then stop everything, save settings, quit scsynth and exit sclang (`tools/stop-engine.sh` uses it) |
-| `/ps/history/steps` | `kind name` | *reply* the history player's steps for a pattern or synth (its pairings, oldest first): `index, time, pattern, patternHash, synth, synthHash, playable, current` |
+| `/ps/history/steps` | `kind name` | *reply* the history of making: for a pattern, its versions and its synth's versions merged in time order (each step is that pattern version on that synth version); for a synth, its versions. Oldest first: `index, time, change (pattern/synth), step (the new part of its prompt), pattern, patternHash, synth, synthHash, playable, current`. |
 | `/ps/history/load` | `kind name index` | *reply* load that step's versions in memory (no new version, no history line) and play its pattern |
 | `/ps/history/end` | | *reply* back to the latest versions, with the settings from before the player started |
 | `/ps/rec/start` | `[synth or pattern] [seconds]` | *reply* `path`. Records the master output to WAV (24-bit) |

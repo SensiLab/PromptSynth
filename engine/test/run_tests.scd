@@ -58,7 +58,7 @@ ps = ~promptSynth;
 lib = ps.libraryDir;
 
 tests = {
-	var res, status, path, padHash, v;
+	var res, status, path, padHash, v, m;
 	ps.waitFor(60, { ps.isReady == true });
 	"\n=== PromptSynth engine tests (library: %) ===".format(lib).postln;
 
@@ -226,6 +226,11 @@ tests = {
 	check.("key check when synth is redefined", has.(res["warnings"], "badkey") and: { has.(res["warnings"], "woodTune") }, res["warnings"]);
 	v = lines.(lib +/+ "patterns/walk/pairings.jsonl").collect(_.parseJSON);
 	check.("redefine under a playing pattern logs a new pairing", v.size == 2 and: { v[1]["synthHash"] == padHash }, v);
+	v = Pdef(ps.pdefKey(\walk)).source;
+	res = define.(\pad, "pad_v2.scd");
+	check.("synth redefine leaves a playing pattern's Pdef alone (no restart)",
+		truthy.(res["ok"]) and: { Pdef(ps.pdefKey(\walk)).source === v } and: { ps.patternPlaying(\walk) });
+	res = define.(\pad, "pad.scd");
 
 	res = request.('/ps/pattern/play', \walk, \perc);
 	check.("rebind pattern to another synth", truthy.(res["ok"]) and: { res["synth"] == "perc" }, res);
@@ -336,11 +341,50 @@ tests = {
 	check.("restore skips a value saved under an old default", request.('/ps/param/get', \pad)["values"]["cutoff"].asFloat == 3000);
 	ps.saveState;
 
+	"-- mappings declared in the code".postln;
+	res = define.(\mapped, "pad_map.scd");
+	m = ps.synths[\mapped][\mappings][\cutoff];
+	check.("declared mapping applied on define", truthy.(res["ok"]) and: { m.notNil } and: {
+		m[\channel] == \fader3 } and: { m[\min] == 200 } and: { m[\max] == 2000 } and: { m[\warp] == \lin }, m);
+	check.("bad declared mapping is a warning", has.(res["warnings"], "map nope"), res["warnings"]);
+	request.('/ps/map', \mapped, \cutoff, \fader1);
+	define.(\mapped, "pad_map.scd");
+	check.("same declaration: a live remap stands across a redefine", ps.synths[\mapped][\mappings][\cutoff][\channel] == \fader1);
+	ps.saveState;
+	ps.restoreState;
+	0.2.wait;
+	check.("same declaration: restore keeps the live remap", ps.synths[\mapped][\mappings][\cutoff][\channel] == \fader1);
+	request.('/ps/unmap', \mapped, \cutoff);
+	ps.saveState;
+	define.(\mapped, "pad_map.scd");   // as at boot: no previous version, so the declared one is applied
+	ps.restoreState;
+	0.2.wait;
+	check.("same declaration: restore keeps a live unmap", ps.synths[\mapped][\mappings][\cutoff].isNil);
+	res = define.(\mapped, "pad_map2.scd");
+	m = ps.synths[\mapped][\mappings][\cutoff];
+	check.("changed declaration wins on define", m.notNil and: { m[\channel] == \fader3 } and: { m[\min] == 300 }, m);
+	request.('/ps/map', \mapped, \cutoff, \fader1);
+	ps.saveState;
+	v = File.readAllString(ps.stateFile).parseJSON;
+	check.("state file has the declaration", v["synths"]["mapped"]["declared"]["cutoff"] == "fader3 300 3000 lin", v["synths"]["mapped"]);
+	v["synths"]["mapped"]["declared"]["cutoff"] = "fader3 200 2000 lin";   // as if saved before the code changed
+	File.use(ps.stateFile, "w", { |f| f.write(ps.jsonEncode(v)) });
+	request.('/ps/map', \mapped, \cutoff, \fader3, 300, 3000, \lin);   // as at boot: the declared one
+	ps.restoreState;
+	0.2.wait;
+	check.("changed declaration wins on restore", ps.synths[\mapped][\mappings][\cutoff][\channel] == \fader3);
+	define.(\mapped, "pad.scd");
+	check.("dropped declaration unmaps", ps.synths[\mapped][\mappings][\cutoff].isNil);
+	ps.saveState;
+
 	"-- history player".postln;
 	define.(\pad, "pad_v2.scd");   // the latest has detune; v1 (padHash) doesn't
 	request.('/ps/pattern/play', \walk);   // so walk's last pairing is the current versions
 	v = ps.historySteps(\pattern, \walk);
-	check.("history steps from pairings", v.size > 0 and: { v[0][\synth] == \pad } and: { v.every { |s| s[\patternStored] } }, v);
+	check.("history steps: the pairing's versions (pattern and synth)", v.size > 0 and: { v[0][\synth] == \pad } and: {
+		v.every { |s| s[\patternStored] } } and: { v.any { |s| s[\change] == \synth } } and: { v.any { |s| s[\change] == \pattern } },
+		v.collect { |s| [s[\change], s[\patternHash], s[\synthHash], s[\step]] });
+	check.("history steps for a synth: its versions", ps.historySteps(\synth, \pad).every { |s| s[\change] == \synth and: { s[\pattern].isNil } });
 	check.("the last step is the current files", v.last[\current] and: { v.last[\playable] }, v.last);
 	request.('/ps/map', \pad, \detune, \mouseX, 0, 0.05);
 	1.5.wait;   // let that mapping's settings save happen first
@@ -375,6 +419,7 @@ tests = {
 	check.("OSC history end", truthy.(res["ok"]) and: { ps.historyActive.not }, res);
 	res = request.('/ps/history/load', \pattern, \walk, 9999);
 	check.("OSC history load out of range errors", truthy.(res["ok"]).not and: { ps.historyActive.not }, res);
+
 	request.('/ps/unmap', \pad, \detune);
 	send.('/ps/pattern/stop', \walk);
 	ps.stopPattern(\walk, true);

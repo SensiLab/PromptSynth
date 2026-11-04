@@ -52,9 +52,46 @@ registerEntry: { |self, def, kind, source, params, channels, hasGate|
 	};
 	self.synths[name] = e;
 
+	// mappings the code declares: applied when new or changed in the code (the code wins, as
+	// for defaults); one the code no longer declares is unmapped. Problems become warnings
+	e.put(\declared, self.declaredMappings(def));
+	e.put(\mapWarnings, self.applyDeclared(e, (old !? { old[\declared] }) ?? { () }));
+
 	// hot-swap: a running instance restarts on the new definition
 	if (e[\instance].notNil) { self.playSynth(name) };
 	e
+},
+
+// metadata (map: (param: \channel or [\channel, min, max, warp])) -> param -> (args, str)
+declaredMappings: { |self, def|
+	var m = def.metadata !? { |md| md[\map] } ?? { () }, out = ();
+	m.keysValuesDo { |k, v|
+		var a = v.asArray;
+		a = [a[0], a[1], a[2], a[3]];
+		out[k.asSymbol] = (args: a, str: a.collect { |x| (x ? "").asString }.join(" ").stripWhiteSpace);
+	};
+	out
+},
+
+// checked here rather than caught: an error caught in this call chain garbled the caller's
+// next message send (sclang 3.14)
+applyDeclared: { |self, e, before|
+	var warnings = List[];
+	e[\declared].keysValuesDo { |k, d|
+		var p = e[\params].detect { |q| q[\name] == k }, ch = d[\args][0];
+		if (before[k].isNil or: { before[k][\str] != d[\str] }) {
+			case
+			{ p.isNil } { warnings.add("map %: '%' has no param '%'".format(k, e[\name], k)) }
+			{ p[\rate] != \control } { warnings.add("map %: only control-rate params can be mapped; % is %".format(k, k, p[\rate])) }
+			{ ch.isNil or: { self.channels[ch.asSymbol].isNil and: { self.validName(ch.asSymbol).not } } } {
+				warnings.add("map %: invalid channel '%'".format(k, ch)) }
+			{ warnings.addAll(self.mapParam(e[\name], k, *d[\args])[\warnings].collect { |w| "map %: %".format(k, w) }) }
+		}
+	};
+	before.keysDo { |k|
+		if (e[\declared][k].isNil and: { e[\mappings][k].notNil }) { self.unmapParam(e[\name], k) }
+	};
+	warnings.asArray
 },
 
 instanceArgs: { |self, e|

@@ -36,6 +36,12 @@ waiting on three decisions.
 - **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
   (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
+- **History of making** (2026-11-04): the history player lists a pairing's versions (the pattern's
+  and its synth's, with their prompts) in the order they were made, not what was played.
+- **Mappings in the synth file** (2026-11-04): `metadata: (map: (...))`, applied on define; the
+  code wins when the declaration changes. 149 tests.
+- **Synth edits don't restart patterns** (2026-11-04): patterns read their synth's params at
+  every note, so a redefine plays from the next note; only a pattern change swaps (on the bar).
 - **Sessions end cleanly** (2026-11-04): `/ps/quit` (stop everything, save state, quit scsynth,
   exit). `tools/start-engine.sh` records its PIDs and the engine's port in `.run/session.pids`;
   Ctrl-C or `tools/stop-engine.sh` uses only those, never process names. 139 tests.

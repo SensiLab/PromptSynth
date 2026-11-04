@@ -234,6 +234,7 @@ runDefine: { |self, name, path, infoJson, opts|
 		e[\hash] = if (opts[\save]) { self.saveSynth(name, src, infoJson, res) } { self.fileHash(path) };
 		res[\hash] = e[\hash];
 		res[\warnings].addAll(self.followSynth(e[\name]));
+		res[\warnings].addAll(e[\mapWarnings]);
 	};
 
 	res[\errors] = res[\errors].reject(_.isNil).asArray;

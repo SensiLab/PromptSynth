@@ -19,7 +19,9 @@ SynthDef(\x, { |out = 0, gate = 1, freq = 220, amp = 0.2, pan = 0,
 - `out` arg, stereo `Out.ar(out, sig)`. No fixed bus, `Out.kr` or >2 channels.
 - `gate` arg = sustained (must free itself on gate 0). No `gate` = one-shot (must free itself).
 - **Envelope params always:** sustained `attack decay sustain release`; one-shot `attack decay`. fx exempt.
-- **Never MouseX/MouseY/MouseButton/KeyState in a synth.** Expose a param, then `/ps/map` a channel.
+- **Never MouseX/MouseY/MouseButton/KeyState in a synth.** Expose a param and map a channel.
+- **Mappings go in the code:** `metadata: (specs: (...), map: (timbre: [\mouseX, 0, 1, \lin], sweep: \mouseY))`
+  (min/max/warp optional). A new or changed declaration wins over a live one; `/ps/map` is for quick tries.
 - Specs in `metadata: (specs: (...))`; missing ones are guessed from the name or default.
 - fx: `metadata: (fx: true)`, `In.ar(in, 2)` → `ReplaceOut.ar(out, dry + wet)`.
 - Or a Function texture `{ |note = 42| ... }`: wrapped in a gated SynthDef.

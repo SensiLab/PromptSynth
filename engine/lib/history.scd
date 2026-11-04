@@ -1,7 +1,6 @@
-// History player: replays what was played, from pairings.jsonl (which pattern version played on
-// which synth version, in time order). Old versions load the way the watcher reloads a file: in
-// memory only, no new version, no history line. Saves over a file were never stored in
-// versions/, so steps that need one are marked missing.
+// History player: steps through the history of making a pairing, a pattern and its synth (their
+// versions in history.jsonl, in time order). Old versions load the way the watcher reloads a
+// file: in memory only, no new version, no history line.
 //
 // While the player is active, nothing is written to pairings.jsonl (replaying mustn't add to the
 // history it reads) and settings aren't saved: an old version without a param drops that
@@ -15,13 +14,16 @@ versionFile: { |self, kind, name, hash|
 	hash !? { dir +/+ "versions" +/+ hash ++ ".scd" }
 },
 
-// steps for a pattern (its pairings) or a synth (every pattern's pairings that name it), oldest
-// first; repeats of the same pattern + synth versions in a row are one step. A version loads from
-// versions/ or, if it's the current one, from the library file. A step is `playable` when both of
-// its versions load, `current` when both are the current ones. Reads files: call on selection,
-// not per frame.
+// the history of making a pairing: a pattern's versions and its synth's versions (history.jsonl,
+// each with its prompt) merged in time order, oldest first. A step is the pairing after one of
+// them was made: that pattern version on that synth version; `change` says which was made and
+// `step` is the new part of its prompt. It starts once both exist. For a synth: its own versions
+// (no pattern). A version loads from versions/ or, if it's the current one, from the library
+// file. A step is `playable` when its versions load, `current` when they're the current files.
+// Reads files: call on selection, not per frame.
 historySteps: { |self, kind, name|
-	var lines = List[], steps = List[], currents = IdentityDictionary();
+	var events = List[], steps = List[], currents = IdentityDictionary(), seq = 0;
+	var pattern, synth, pHash, sHash;
 	var source = { |kind, name, hash|
 		var lib = if (kind == \synth) { self.synthDir(name) +/+ "synthdef.scd" } { self.patternDir(name) +/+ "pattern.scd" };
 		var file = self.versionFile(kind, name, hash), key = (kind ++ ":" ++ name).asSymbol;
@@ -31,27 +33,47 @@ historySteps: { |self, kind, name|
 			{ hash.notNil and: { hash == currents[key] } } { [lib, true] }
 			{ [nil, false] }
 	};
-	var read = { |pattern|
-		(self.readFile(self.patternDir(pattern) +/+ "pairings.jsonl") ? "").split($\n).do { |l|
-			var p = try { l.parseJSON } { nil };
-			if (p.isKindOf(Dictionary) and: { p["event"] == "play" }) {
-				lines.add((time: p["time"].asString, pattern: pattern.asSymbol, patternHash: p["patternHash"],
-					synth: p["synth"].asSymbol, synthHash: p["synthHash"]))
+	// one item's versions, each with the part of its prompt that's new since the one before
+	var read = { |kind, name|
+		var dir = if (kind == \synth) { self.synthDir(name) } { self.patternDir(name) }, prev;
+		(self.readFile(dir +/+ "history.jsonl") ? "").split($\n).do { |l|
+			var h = try { l.parseJSON } { nil }, pr, step;
+			if (h.isKindOf(Dictionary) and: { h["hash"].notNil }) {
+				pr = h["info"] !? { |i| if (i.isKindOf(Dictionary)) { i["prompt"] } };
+				step = case
+					{ pr.isNil } { "(no prompt)" }
+					{ prev.notNil and: { pr.beginsWith(prev) } and: { pr.size > prev.size } } {
+						step = pr.drop(prev.size);
+						if (step.beginsWith(" / ")) { step.drop(3) } { step } }
+					{ pr.findBackwards(" / ") !? { |i| pr.drop(i + 3) } ? pr };
+				pr !? { prev = pr };
+				seq = seq + 1;
+				events.add((time: h["time"].asString, seq: seq, kind: kind, hash: h["hash"].asString, step: step));
 			}
 		}
 	};
 	name = name.asSymbol;
-	if (kind == \pattern) { read.(name) } {
-		self.patterns.keys.do { |pn| read.(pn) };
-		lines = lines.select { |s| s[\synth] == name };
+	if (kind == \pattern) {
+		pattern = name;
+		synth = self.patterns[name] !? { |p| p[\synth] };
+		read.(\pattern, pattern);
+		synth !? { read.(\synth, synth) };
+		// a synth with no stored versions plays as it is now
+		if (synth.notNil and: { events.every { |e| e[\kind] == \pattern } }) { sHash = self.synths[synth] !? { |e| e[\hash] } };
+	} {
+		synth = name;
+		read.(\synth, synth);
 	};
-	lines.sort { |a, b| a[\time] <= b[\time] }.do { |s|
-		var last = steps.last;
-		if (last.isNil or: { [\pattern, \patternHash, \synthHash].any { |k| last[k] != s[k] } }) {
-			var p = source.(\pattern, s[\pattern], s[\patternHash]), y = source.(\synth, s[\synth], s[\synthHash]);
+	events.sort { |a, b| if (a[\time] == b[\time]) { a[\seq] <= b[\seq] } { a[\time] < b[\time] } }.do { |ev|
+		if (ev[\kind] == \pattern) { pHash = ev[\hash] } { sHash = ev[\hash] };
+		if ((pattern.isNil or: { pHash.notNil }) and: { sHash.notNil }) {
+			var s = (time: ev[\time], change: ev[\kind], step: ev[\step], pattern: pattern, patternHash: pHash,
+				synth: synth, synthHash: sHash), p, y;
+			p = if (pattern.notNil) { source.(\pattern, pattern, pHash) } { [nil, true] };
+			y = source.(\synth, synth, sHash);
 			s[\patternFile] = p[0]; s[\synthFile] = y[0];
 			s[\patternStored] = p[0].notNil; s[\synthStored] = y[0].notNil;
-			s[\playable] = s[\patternStored] and: { s[\synthStored] };
+			s[\playable] = (pattern.isNil or: { s[\patternStored] }) and: { s[\synthStored] };
 			s[\current] = p[1] and: { y[1] };
 			steps.add(s);
 		}

@@ -52,6 +52,10 @@ sounded good. Audio can be recorded as samples.
 - 2026-10-29: **one main window**; analysis (scopes, spectra) in a separate window.
 - 2026-10-29: the **mouse channel reads the whole screen**; the UI doesn't capture the mouse.
 - 2026-10-29: **mappings are always made in code** (OSC / Claude), never in the UI.
+- 2026-11-04: **a synth declares its mappings in its file** (`metadata: (map: (...))`), so they're
+  versioned with it. The code wins as for defaults: a new or changed declaration is applied over
+  a live mapping, a dropped one unmaps, an unchanged one leaves live changes alone. `/ps/map`
+  stays for quick live tries.
 - 2026-10-29: **the UI is `engine/ui.scd`**, evaluated by hand once the engine is up, not opened
   by the engine itself.
 - 2026-10-29: **patterns name their synth in code** with `\instrument`, so they can't be

@@ -35,15 +35,21 @@ keyCheck: { |self, p, e|
 },
 
 updatePdef: { |self, p|
-	var e = self.synthEntry(p[\synth]), pairs, inner;
-	var base = [\instrument, e[\name], \out, Pfunc { self.masterBus.index }, \group, Pfunc { self.sourceGroup }];
-	e[\params].do { |prm|
-		var k = prm[\name];
-		if (self.eventKeys.includes(k).not) {
-			case
-			{ prm[\rate] == \control } { base = base ++ [k, e[\buses][k].asMap] }
-			{ #[scalar, trigger].includes(prm[\rate]) } { base = base ++ [k, Pfunc { e[\paramValues][k] }] }
-		}
+	var e = self.synthEntry(p[\synth]), name = e[\name], pairs, inner, base;
+	// the synth's params are read at every note, so a redefined synth (new params included)
+	// plays from the next note without touching the Pdef: only a pattern change swaps it
+	base = Pfunc { |ev|
+		var s = self.synths[name] ? e;
+		ev = ev.copy.put(\instrument, name).put(\out, self.masterBus.index).put(\group, self.sourceGroup);
+		s[\params].do { |prm|
+			var k = prm[\name];
+			if (self.eventKeys.includes(k).not) {
+				case
+				{ prm[\rate] == \control } { ev.put(k, s[\buses][k].asMap) }
+				{ #[scalar, trigger].includes(prm[\rate]) } { ev.put(k, s[\paramValues][k]) }
+			}
+		};
+		ev
 	};
 	pairs = p[\overrides].keys.asArray.sort.collect { |k| [k, p[\overrides][k]] }.flatten;
 	inner = case
@@ -52,7 +58,7 @@ updatePdef: { |self, p|
 		{ Pbindf(p[\userPattern], *pairs) };
 	// a playing Pdef switches to a new source on its next quant
 	Pdef(self.pdefKey(p[\name])).quant = p[\bar];
-	Pdef(self.pdefKey(p[\name]), Pchain(inner, Pbind(*base)));
+	Pdef(self.pdefKey(p[\name]), Pchain(inner, base));
 },
 
 logPairing: { |self, p, what|
@@ -247,12 +253,12 @@ patternState: { |self, name|
 		keys: p[\keys].asArray.sort, overrides: p[\overrides].keys.asArray.sort, fixedInstrument: p[\fixed])
 },
 
-// after a synth is redefined: rebuild its patterns, check keys, log new pairings for playing ones
+// after a synth is redefined: check keys, log new pairings for playing ones. The Pdefs stay as
+// they are (they read the synth's params at every note), so playing patterns don't restart
 followSynth: { |self, name|
 	var warnings = List[];
 	self.patterns.do { |p|
 		if (p[\synth] == name) {
-			self.updatePdef(p);
 			warnings.addAll(self.keyCheck(p, self.synths[name]));
 			if (self.patternPlaying(p[\name])) { self.logPairing(p, \play) };
 		}

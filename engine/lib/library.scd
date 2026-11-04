@@ -140,12 +140,13 @@ saveStateSoon: { |self|
 saveState: { |self|
 	var synths = ();
 	self.synths.keysValuesDo { |name, e|
-		var mappings = (), defaults = ();
+		var mappings = (), defaults = (), declared = ();
 		e[\params].do { |p| if (p[\rate] != \array) { defaults[p[\name]] = p[\default] } };
 		e[\mappings].keysValuesDo { |param, m|
 			mappings[param] = (channel: m[\channel], min: m[\min], max: m[\max], warp: m[\warp])
 		};
-		synths[name] = (values: e[\paramValues], defaults: defaults, mappings: mappings);
+		(e[\declared] ?? { () }).keysValuesDo { |param, d| declared[param] = d[\str] };
+		synths[name] = (values: e[\paramValues], defaults: defaults, mappings: mappings, declared: declared);
 	};
 	self.writeFile(self.stateFile, self.jsonEncode((master: self.config[\masterAmp],
 		tempo: TempoClock.default.tempo * 60, synths: synths, saved: self.isoNow)));
@@ -158,8 +159,14 @@ restoreState: { |self|
 		st["master"] !? { |v| self.setMasterAmp(num.(v)) };
 		st["tempo"] !? { |v| self.setTempo(num.(v)) };
 		(st["synths"] ?? { () }).keysValuesDo { |name, s|
-			var e = self.synths[name.asSymbol];
+			var e = self.synths[name.asSymbol], declaredKept;
 			if (e.notNil) {
+				// is what the code declares for this param what it declared when the state was saved?
+				declaredKept = { |k|
+					var cur = e[\declared] !? { |d| d[k.asSymbol] } !? { |d| d[\str] };
+					var was = s["declared"] !? { |d| d[k.asString] };
+					cur.isNil and: { was.isNil } or: { cur.notNil and: { was.notNil } and: { cur == was.asString } }
+				};
 				// a value saved under a default the code has since changed is skipped: the code wins
 				(s["values"] ?? { () }).keysValuesDo { |k, v|
 					var p = e[\params].detect { |p| p[\name] == k.asSymbol };
@@ -168,11 +175,20 @@ restoreState: { |self|
 						saved.isNil or: { num.(saved).equalWithPrecision(p[\default], 1e-9, 1e-6) }
 					}) { try { self.setParam(name, k, num.(v)) } };
 				};
+				// a mapping the code declares wins unless it's what the code declared when it was saved:
+				// then the saved (live) one, or its absence after an unmap, stands
 				(s["mappings"] ?? { () }).keysValuesDo { |k, m|
 					var warp = m["warp"].asString;
 					warp = if (warp.asFloat != 0 or: { warp == "0" }) { warp.asFloat } { warp.asSymbol };
-					try { self.mapParam(name, k, m["channel"], num.(m["min"]), num.(m["max"]), warp) }
-						{ |err| self.log("couldn't restore mapping %.%: %".format(name, k, self.errorText(err))) };
+					if (declaredKept.(k)) {
+						try { self.mapParam(name, k, m["channel"], num.(m["min"]), num.(m["max"]), warp) }
+							{ |err| self.log("couldn't restore mapping %.%: %".format(name, k, self.errorText(err))) };
+					}
+				};
+				e[\declared].keysDo { |k|
+					if (declaredKept.(k) and: { (s["mappings"] ?? { () })[k.asString].isNil } and: { e[\mappings][k].notNil }) {
+						try { self.unmapParam(name, k) }
+					}
 				};
 			}
 		};
