@@ -50,4 +50,4 @@ SynthDef(\harpRecorder, { |out = 0, gate = 1, freq = 440, amp = 0.3, attack = 0.
 	spread: [0, 1, \lin, 0, 0.6],
 	breathRate: [0.2, 20, \exp, 0, 3, "Hz"],
 	breathMove: [0, 1, \lin, 0, 0.5]
-)))
+), map: (blend: [\mouseX, 0, 1, \lin], tone: [\mouseY, 0, 1, \lin])))

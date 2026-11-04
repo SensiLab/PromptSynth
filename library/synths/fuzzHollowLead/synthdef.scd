@@ -47,4 +47,4 @@ SynthDef(\fuzzHollowLead, { |out = 0, gate = 1, freq = 220, amp = 0.3, attack = 
 	fenvAmount: [0, 8, \lin, 0, 3],
 	fenvDecay: [0.05, 4, \exp, 0, 0.8, "s"],
 	drift: [0, 1, \lin, 0, 0.4]
-)))
+), map: (cutoff: [\mouseX, 150, 2500, \exp], fuzz: [\mouseY, 0, 1, \lin], hollow: [\mouseX, 0, 1, \lin], res: [\mouseY, 0, 0.85, \lin])))

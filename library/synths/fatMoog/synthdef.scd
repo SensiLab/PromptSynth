@@ -33,4 +33,4 @@ SynthDef(\fatMoog, { |out = 0, gate = 1, freq = 220, amp = 0.3, attack = 0.005, 
 	sub: [0, 1, \lin, 0, 0.5],
 	drive: [1, 8, \exp, 0, 1.6],
 	spread: [0, 1, \lin, 0, 0.7]
-)))
+), map: (cutoff: [\mouseX, 150, 4000, \exp], res: [\mouseY, 0, 3.2, \lin])))

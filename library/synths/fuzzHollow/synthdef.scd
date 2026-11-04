@@ -51,4 +51,4 @@ SynthDef(\fuzzHollow, { |out = 0, gate = 1, freq = 220, amp = 0.3, attack = 0.08
 	verb: [0, 1, \lin, 0, 0.35],
 	room: [0, 1, \lin, 0, 0.8],
 	damp: [0, 1, \lin, 0, 0.4]
-)))
+), map: (cutoff: [\mouseX, 400, 7000, \exp], fuzz: [\mouseY, 0, 1, \lin], hollow: [\mouseX, 0, 1, \lin], res: [\mouseY, 0, 0.85, \lin])))

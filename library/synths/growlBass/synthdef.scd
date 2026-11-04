@@ -49,4 +49,4 @@ SynthDef(\growlBass, { |out = 0, gate = 1, freq = 55, amp = 0.3, attack = 0.001,
 	drive: [1, 12, \exp, 0, 3],
 	sub: [0, 1, \lin, 0, 0.6],
 	spread: [0, 1, \lin, 0, 1]
-)))
+), map: (fm: [\mouseY, 0, 5, \lin], vowel: [\mouseX, 0, 1, \lin])))

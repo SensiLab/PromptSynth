@@ -93,4 +93,4 @@ SynthDef(\warmDrone, { |out = 0, gate = 1, freq = 73.42, amp = 0.25, cutoff = 42
 	vibDepth: [0, 1, \lin, 0, 0.2, "st"],
 	vibRate: [0.5, 12, \exp, 0, 5, "Hz"],
 	body: [0, 1, \lin, 0, 1]
-)))
+), map: (attack: [\mouseY, 0.01, 0.1, \exp], body: [\mouseY, 1, 0.35, \exp], cutoff: [\mouseX, 80, 6000, \exp], decay: [\mouseY, 0.01, 2, \exp], pdAmount: [\mouseX, 0, 2, \lin], release: [\mouseY, 0.01, 2, \exp], wood: [\mouseY, 0.35, 1, \lin], woodDecay: [\mouseY, 0.01, 1, \exp], woodHollow: [\mouseY, 0, 1, \lin])))

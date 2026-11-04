@@ -62,4 +62,4 @@ SynthDef(\hollowLog, { |out = 0, freq = 220, amp = 0.3, attack = 0.003, decay = 
 	padBuzz: [0, 1, \lin, 0, 0.6],
 	padWarm: [0, 1, \lin, 0, 0.5],
 	padDrive: [0.5, 8, \exp, 0, 2]
-)))
+), map: (cutoff: [\mouseX, 300, 12000, \exp], hp: [\mouseY, 20, 1500, \exp])))

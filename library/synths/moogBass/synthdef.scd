@@ -28,4 +28,4 @@ SynthDef(\moogBass, { |out = 0, gate = 1, freq = 55, amp = 0.3, cutoff = 400, re
 	vibDepth: [0, 1, \lin, 0, 0.08, "st"],
 	vibRate: [0.5, 12, \exp, 0, 5.5, "Hz"],
 	pan: [-1, 1]
-)))
+), map: (cutoff: [\mouseX, 60, 4000, \exp], decay: [\mouseY, 0.03, 2, \exp])))
