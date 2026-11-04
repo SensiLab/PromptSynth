@@ -19,7 +19,7 @@ SynthDef(\fmSweep, { |out = 0, gate = 1, freq = 220, amp = 0.2, pan = 0,
 		SinOsc.ar(f + mod, 0, 1) + (SinOsc.ar(f * 0.5 + (mod * 0.3)) * 0.3)
 	};
 	var body = (SinOsc.ar(freq * 0.5) * 0.6 + (SinOsc.ar(freq, 0.5pi) * 0.5) + (SinOsc.ar(freq * 2) * 0.15)) * warmth;
-	var pdSub = SinOsc.ar(freq * 0.5, 0) * sub * 2.9;
+	var pdSub = SinOsc.ar(freq * 1, 0) * sub * 2.9;
 	var tenv =EnvGen.kr(Env.perc(0.001, 0.35, 1, -6), gate);
 	var bell = [[4.0, 7.11, 10.93], [4.02, 7.07, 11.02]].collect { |rs|
 		(rs.collect { |r, j| SinOsc.ar((freq * r).min(15000), 0, 0.5 / (j + 1)) }).sum
@@ -35,4 +35,7 @@ SynthDef(\fmSweep, { |out = 0, gate = 1, freq = 220, amp = 0.2, pan = 0,
 }, metadata: (specs: (
 	timbre: [0, 1], sweep: [0, 1], ratio: [0.5, 7], detune: [0, 1], lfoRate: [0.02, 8, \exp],
 	lfoDepth: [0, 1], envAmt: [0, 1], res: [0, 1], warmth: [0, 1], tinkle: [0, 1], sub: [0, 1], subPd: [0, 1]
-), map: (timbre: [\mouseX, 0, 1, \lin], sweep: [\mouseY, 0, 1, \lin])))
+), map: (
+	timbre: [\mouseX, 0, 1, \lin], 
+	sweep: [\mouseY, 0, 1, \lin]
+)))
