@@ -36,6 +36,9 @@ waiting on three decisions.
 - **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
   (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
+- **Slides** (2026-11-05): `slides/`, a demo deck of `docs/code-as-instrument.md` with the engine
+  built in (play buttons, live code panels, the history of making), served by its own small Node
+  server on 8092. The spectrogram and stereo field come from `--views`, not the page.
 - **Watcher catches every save** (2026-11-04): a save made while a reload ran was lost (the
   define recorded the file's hash after compiling, so the newer save looked loaded, and same-second
   saves looked unchanged). Defines now hash the code they compiled; the watcher rechecks content

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code as Instrument</title>
+<style>
+  :root {
+    --bg: #111214; --fg: #e8e6e1; --dim: #8d8a83; --line: #2c2d31; --panel: #18191c;
+    --accent: #e0a458; --play: #7cc48a; --flash: #4a3b1f;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: 400 clamp(16px, 1.6vw, 26px)/1.45 -apple-system, "Helvetica Neue", sans-serif; }
+  .slide { position: absolute; inset: 0; padding: 6vh 7vw 9vh; display: none; flex-direction: column; overflow: auto; }
+  .slide.on { display: flex; }
+  h1 { font-size: 3.4em; line-height: 1.05; margin: auto 0 0.3em; letter-spacing: -0.02em; }
+  h2 { font-size: 2em; margin: 0 0 0.6em; letter-spacing: -0.01em; }
+  .sub { color: var(--dim); font-size: 1.2em; margin-bottom: auto; }
+  p, li { max-width: 46em; }
+  ul { padding-left: 1.1em; } li { margin: 0.35em 0; }
+  em { color: var(--accent); font-style: normal; }
+  blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--accent); font-size: 1.25em; max-width: 36em; }
+  blockquote cite { display: block; color: var(--dim); font-size: 0.7em; font-style: normal; margin-top: 0.4em; }
+  code { font-family: var(--mono); font-size: 0.9em; color: var(--accent); }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 3vw; flex: 1; min-height: 0; }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; margin-top: 1em; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1em; }
+  .card b { display: block; font-size: 1.1em; margin-bottom: 0.4em; }
+  .card .from { color: var(--dim); }
+  .time { display: grid; grid-template-columns: 8em 1fr; gap: 0.4em 1.2em; max-width: 50em; }
+  .time dt { color: var(--accent); font-family: var(--mono); font-size: 0.85em; padding-top: 0.15em; }
+  .time dd { margin: 0; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em; margin: 1em 0 1.4em; }
+  .flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.35em 0.7em; }
+  .flow i { color: var(--dim); font-style: normal; }
+  pre.src { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0.8em 1em;
+    font: 0.62em/1.5 var(--mono); overflow: auto; min-height: 0; height: 100%; white-space: pre; }
+  pre.src .ln { display: block; transition: background 2s; }
+  pre.src .ln.new { background: var(--flash); transition: none; }
+  .bar { display: flex; flex-wrap: wrap; gap: 0.6em; align-items: center; margin: 0.8em 0; }
+  button { font: inherit; font-size: 0.85em; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; padding: 0.3em 0.9em; cursor: pointer; }
+  button:hover { border-color: var(--dim); }
+  button.playing { border-color: var(--play); color: var(--play); }
+  select { font: inherit; font-size: 0.85em; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 0.25em; }
+  .note { color: var(--dim); font-size: 0.85em; }
+  ol.steps { list-style: none; padding: 0; margin: 0; overflow: auto; min-height: 0; flex: 1; border: 1px solid var(--line); border-radius: 8px; }
+  ol.steps li { max-width: none; margin: 0; padding: 0.45em 0.8em; border-bottom: 1px solid var(--line); cursor: pointer; display: grid;
+    grid-template-columns: 7.5em 4.5em 1fr; gap: 0.8em; font-size: 0.85em; }
+  ol.steps li:hover { background: var(--panel); }
+  ol.steps li.cur { background: var(--flash); }
+  ol.steps li.missing { color: var(--dim); cursor: default; }
+  ol.steps .t, ol.steps .k { font-family: var(--mono); font-size: 0.85em; color: var(--dim); padding-top: 0.15em; }
+  #chrome { position: fixed; left: 7vw; right: 7vw; bottom: 3vh; display: flex; justify-content: space-between;
+    color: var(--dim); font-size: 0.7em; pointer-events: none; }
+  #engine::before { content: "●"; margin-right: 0.4em; color: #b55; }
+  #engine.up::before { color: var(--play); }
+  a { color: var(--accent); }
+  @media (max-width: 800px) { .cols, .three { grid-template-columns: 1fr; } .slide { padding: 5vh 16px 10vh; } }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide">
+  <h1>Code as<br>Instrument</h1>
+  <div class="sub">PromptSynth: live coding SuperCollider with Claude Code</div>
+  <p class="note">← → to move · <b>s</b> stops everything · the dot bottom right is the engine</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <h2>The cost of change collapsed</h2>
+  <p>About 30 years of watching how the cost of change shaped each era's interface to the machine.</p>
+  <p>That cost has collapsed, so software has become <em>softer</em>: material you keep reshaping,
+    not a finished artifact you configure.</p>
+  <p>Software is processes plus configuration. A GUI is one lossy view of that configuration.</p>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <h2>The code is the interface</h2>
+  <p>When editing code is cheap, code itself becomes the shared interface between the human and the model.</p>
+  <blockquote>i dont want to see parameters moving. the code is the interface and i see with my ears.
+    <cite>Steph, 2026-10-29</cite></blockquote>
+  <p>We make sounds by writing code, judge them by ear, and keep every iteration as a replayable trace.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <h2>How it got here</h2>
+  <dl class="time">
+    <dt>2025-03</dt><dd>Prototype: a prompt goes to the API, a SynthDef comes back and plays. The model is a <em>generator</em>.</dd>
+    <dt>2026-10-28</dt><dd>An engine in sclang over OSC, a library of named synths and patterns, hashed versions.</dd>
+    <dt>2026-10-28</dt><dd>Saving over a playing file reloads it: hand edits join the loop.</dd>
+    <dt>2026-10-29</dt><dd>The code is the interface: no params on screen.</dd>
+    <dt>2026-11-01</dt><dd>The terminal is primary. Claude Code edits the files and drives the engine. The GUI becomes optional.</dd>
+    <dt>2026-11-02</dt><dd>Speed over accuracy: time from prompt to sound matters most.</dd>
+    <dt>2026-11-04</dt><dd>The history of making. Mappings move into the code.</dd>
+  </dl>
+  <p class="note">The model went from generator to collaborator in the files.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <h2>The engine</h2>
+  <div class="flow"><span>prompt</span><i>→</i><span>Claude Code (terminal)</span><i>→</i><span>library files</span><i>→</i>
+    <span>engine (sclang, OSC)</span><i>→</i><span>scsynth</span><i>→</i><span>ears</span></div>
+  <ul>
+    <li>Each synth and pattern is one file. Claude writes it; the human edits it too.</li>
+    <li>The engine validates, smoke-tests, versions and plays it.</li>
+    <li>Everything else (terminal, web UI, these slides) talks to it over OSC.</li>
+  </ul>
+  <p class="note" id="libSummary">engine not running</p>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <h2>A synth is one file</h2>
+  <div class="cols">
+    <div>
+      <p><code>library/synths/fmSweep/synthdef.scd</code></p>
+      <p>Prompt: <em>“a fm synth with sweeping filters and detuning… make synth warm and add a hi tinkle… add a sub harmonic”</em></p>
+      <p><b>Save to listen:</b> saving over a playing file reloads it. <b>Define to keep:</b> a define makes a version.</p>
+      <div class="bar"><button data-play="pattern:bachPreludeSeq">▶ bachPreludeSeq</button></div>
+      <p class="note">Edit the file live: changed lines light up here.</p>
+    </div>
+    <pre class="src" data-src="synth:fmSweep"></pre>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <h2>A pattern is the score</h2>
+  <div class="cols">
+    <div>
+      <p><code>library/patterns/fmBreakSeq/pattern.scd</code></p>
+      <p>Same synth, another pattern: kick, snare and hat from the FM voice, close to a break beat.</p>
+      <p>A pattern plays its synth's <em>current</em> version. Edit the synth and the pattern keeps playing on the new sound.</p>
+      <div class="bar" data-together><button data-play="pattern:fmBreakSeq">▶ fmBreakSeq</button><button data-play="pattern:bachPreludeSeq">▶ bachPreludeSeq</button></div>
+    </div>
+    <pre class="src" data-src="pattern:fmBreakSeq"></pre>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <h2>Mappings live in the code</h2>
+  <div class="cols">
+    <div>
+      <p>No <code>MouseX</code> in a synth. It exposes params; the file declares which channel moves them:</p>
+      <p><code>map: (cutoff: [\mouseX, 150, 4000, \exp], res: [\mouseY, 0, 3.2, \lin])</code></p>
+      <p>Versioned with the synth. Change it in the code and the code wins.</p>
+      <div class="bar"><button data-play="pattern:fatMoogSeq">▶ fatMoogSeq</button></div>
+      <p class="note">Move the mouse anywhere on the screen.</p>
+    </div>
+    <pre class="src" data-src="synth:fatMoog"></pre>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <h2>Roles shift</h2>
+  <div class="three">
+    <div class="card"><span class="from">human: author →</span><b>judge and co-author</b>
+      Doesn't need to know the exact move, only whether it's right. Hand edits are the clearest message.</div>
+    <div class="card"><span class="from">model: tool →</span><b>collaborator</b>
+      Proposes moves, narrates them, learns from the human's edits.</div>
+    <div class="card"><span class="from">artifact: product →</span><b>trace</b>
+      What we keep is the history of intent, code and sound, not one final program.</div>
+  </div>
+  <p style="margin-top:1.2em">Authorship is distributed: the human, the model and the stored history all shape each file.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <h2>The history of making</h2>
+  <div class="bar">
+    <select id="histPick"></select>
+    <button id="histLatest">back to latest</button>
+    <span class="note" id="histLabel"></span>
+  </div>
+  <ol class="steps" id="steps"></ol>
+  <p class="note">Each step is a pattern version on a synth version, with the prompt step that made it. Click one to hear it.</p>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <h2>Guardrails, not taste</h2>
+  <ul>
+    <li>Every define is smoke-tested: NaN fails it; silence, clipping, too loud, or not freeing are warnings.</li>
+    <li>A limiter on the master; mapped params are smoothed; input UGens are rejected.</li>
+    <li>Analysis views (spectrogram, MFCCs, stereo field) as a shared language.</li>
+    <li><em>The deliverable is a sound, not a program.</em> The ear decides. No ratings, no stars, no “good” flags.</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <h2>Not decided yet</h2>
+  <ul>
+    <li>A topology vocabulary (resonator, feedback path, excitation, formant bank) to name moves and probes.</li>
+    <li>Comparing a version with the one before in descriptor terms: “brighter, more tonal”.</li>
+    <li>A static look at the graph before playing.</li>
+    <li>Seeded randomness, so a replay matches what was heard.</li>
+    <li>Annotation and search over the library, without turning into ratings.</li>
+  </ul>
+  <p class="note">Spec comes after, not before: we find the vocabulary by making things.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <h2>Related ideas</h2>
+  <ul>
+    <li>Malleable software, Ink &amp; Switch, 2025</li>
+    <li>Software 3.0, Andrej Karpathy, 2025</li>
+    <li>Inventing on Principle, Bret Victor, 2012</li>
+    <li>Live coding and Algorave, TOPLAP, Alex McLean</li>
+    <li>Smalltalk images: live programming</li>
+    <li>Programming as Theory Building, Peter Naur, 1985</li>
+  </ul>
+  <p class="sub" style="margin-top:auto">github.com/SensiLab/PromptSynth</p>
+</section>
+
+<div id="chrome"><span id="num"></span><span id="engine">engine</span></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const slides = [...document.querySelectorAll(".slide")];
+  let cur = 0, status = { up: false };
+
+  const cmd = (body) => fetch("/api/cmd", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+  const getJson = (url) => fetch(url).then((r) => r.json()).catch(() => null);
+
+  // --- slides ---
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, j) => s.classList.toggle("on", j === cur));
+    $("num").textContent = `${cur + 1} / ${slides.length}`;
+    try { history.replaceState(null, "", "#" + (cur + 1)); } catch {}
+    refreshSources();
+    if (slides[cur].contains($("steps"))) loadSteps();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "SELECT") return;
+    if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); show(cur + 1); }
+    else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); show(cur - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key === "s") cmd({ cmd: "panic" });
+  });
+
+  // --- play buttons: one thing at a time, except inside [data-together], where they layer ---
+  const playing = (kind, name) => !!(status[kind + "s"] ?? []).find((x) => x.name === name)?.playing;
+  document.querySelectorAll("[data-play]").forEach((b) => b.onclick = () => {
+    const [kind, name] = b.dataset.play.split(":");
+    if (playing(kind, name)) { cmd({ cmd: kind === "pattern" ? "pattern/stop" : "synth/release", name }); return; }
+    if (b.closest("[data-together]")) { cmd({ cmd: kind === "pattern" ? "pattern/play" : "synth/play", name }); return; }
+    for (const p of status.patterns ?? []) if (p.playing) cmd({ cmd: "pattern/stop", name: p.name });
+    for (const y of status.synths ?? []) if (y.playing) cmd({ cmd: "synth/release", name: y.name });
+    cmd({ cmd: kind === "pattern" ? "pattern/play" : "synth/play", name });
+  });
+  function renderButtons() {
+    document.querySelectorAll("[data-play]").forEach((b) => {
+      const [kind, name] = b.dataset.play.split(":"), on = playing(kind, name);
+      b.classList.toggle("playing", on);
+      b.textContent = (on ? "■ " : "▶ ") + name;
+    });
+  }
+
+  // --- live source: the file as it is now; lines that changed since the last look light up ---
+  const shown = new Map();
+  async function refreshSources() {
+    for (const pre of slides[cur].querySelectorAll("pre[data-src]")) {
+      const [kind, name] = pre.dataset.src.split(":");
+      const r = await getJson(`/api/source?kind=${kind}&name=${name}`);
+      if (!r?.ok) { pre.textContent = `(${kind} ${name} not found)`; continue; }
+      const before = shown.get(pre.dataset.src);
+      if (before === r.text) continue;
+      const old = new Set((before ?? "").split("\n"));
+      pre.innerHTML = r.text.split("\n").map((l) => `<span class="ln${before !== undefined && !old.has(l) ? " new" : ""}">${esc(l) || " "}</span>`).join("");
+      shown.set(pre.dataset.src, r.text);
+      requestAnimationFrame(() => requestAnimationFrame(() => pre.querySelectorAll(".new").forEach((s) => s.classList.remove("new"))));
+    }
+  }
+
+  // --- history of making (the engine's history player) ---
+  let steps = [], stepAt = null, histName = "bachPreludeSeq";
+  function fillPicker() {
+    const names = (status.patterns ?? []).map((p) => p.name).sort();
+    const sel = $("histPick");
+    if (sel.options.length === names.length) return;
+    sel.innerHTML = names.map((n) => `<option${n === histName ? " selected" : ""}>${n}</option>`).join("");
+  }
+  $("histPick").onchange = (e) => { histName = e.target.value; stepAt = null; loadSteps(); };
+  async function loadSteps() {
+    const r = await getJson(`/api/steps?kind=pattern&name=${histName}`);
+    steps = r?.steps ?? [];
+    if (!r?.ok && r) $("histLabel").textContent = (r.errors ?? []).join("; ");
+    renderSteps();
+  }
+  function renderSteps() {
+    $("steps").innerHTML = steps.map((s, i) => `<li data-i="${i}" class="${i === stepAt ? "cur" : ""}${s.playable ? "" : " missing"}">`
+      + `<span class="t">${esc((s.time ?? "").slice(5, 16).replace("T", " "))}</span><span class="k">${esc(s.change ?? "")}</span>`
+      + `<span>${esc(s.step || "(no prompt)")}</span></li>`).join("");
+    $("histLabel").textContent = status.historyActive && stepAt !== null ? `step ${stepAt + 1} of ${steps.length}` : "latest versions";
+  }
+  $("steps").onclick = (e) => {
+    const li = e.target.closest("li"); if (!li) return;
+    const i = Number(li.dataset.i), s = steps[i];
+    if (!s?.playable) return;
+    stepAt = i;
+    for (const p of status.patterns ?? []) if (p.playing && p.name !== histName) cmd({ cmd: "pattern/stop", name: p.name });
+    cmd({ cmd: "history/load", kind: "pattern", name: histName, index: s.index ?? i });
+    renderSteps();
+  };
+  $("histLatest").onclick = () => { stepAt = null; cmd({ cmd: "history/end" }); renderSteps(); };
+
+  // --- engine status ---
+  async function poll() {
+    status = (await getJson("/api/status")) ?? { up: false };
+    $("engine").classList.toggle("up", status.up);
+    $("engine").textContent = status.up ? "engine" : "engine not running";
+    $("libSummary").textContent = status.up
+      ? `Right now: ${status.synths.length} synths, ${status.patterns.length} patterns in the library; playing: ${
+          [...status.patterns.filter((p) => p.playing).map((p) => p.name), ...status.synths.filter((y) => y.playing).map((y) => y.name)].join(", ") || "nothing"}`
+      : "engine not running: start it with tools/start-engine.sh";
+    renderButtons();
+    fillPicker();
+    if (!status.historyActive && stepAt !== null) { stepAt = null; renderSteps(); }
+  }
+  setInterval(poll, 700);
+  setInterval(refreshSources, 1000);
+  poll();
+  show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+</script>
+</body>
+</html>
