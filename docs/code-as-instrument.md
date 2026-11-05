@@ -58,7 +58,7 @@ There is no fixed header. A synth file starts with a few comment lines that say 
 
 ## Verification
 
-- **Smoke test** on every define (not on a save-reload): the synth plays for a moment on a private bus. NaN or inf fails it; silence, clipping, a very loud RMS, or not freeing after the gate closes are warnings. The define result carries `peakDb`.
+- **Smoke test** on every define, not on a live save (that's heard at once): the synth plays for a moment on a private bus. NaN or inf fails it; silence, clipping, a very loud RMS, or not freeing after the gate closes are warnings. The define result carries `peakDb`.
 - **Analysis views** (`--views`): mel spectrogram, mel bands, MFCCs, stereo field and phase, on what you hear after the master.
 - Descriptors are guardrails and a shared language, not a taste signal. The human's ear decides what is good.
 

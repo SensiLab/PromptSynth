@@ -2,8 +2,8 @@
 // checks File.mtime of the pattern.scd of each playing pattern, its synth's synthdef.scd, and the
 // synthdef.scd of each playing synth instance. A file whose content differs from the loaded
 // version goes through the same define path as at boot, without saving: no new version, no
-// history line, no meta. Synths still get the smoke test. Files of things that aren't playing are
-// checked as soon as they start.
+// history line, no meta, and no smoke test, so a live edit is heard at once. Files of things that
+// aren't playing are checked as soon as they start.
 (
 watchInterval: 0.5,
 
@@ -49,7 +49,7 @@ watchReload: { |self, t|
 	var res;
 	self.log("watch: % changed, reloading".format(t[\label]));
 	res = if (t[\kind] == \synth) {
-		self.runDefine(t[\name], t[\path], nil, (save: false))
+		self.runDefine(t[\name], t[\path], nil, (save: false, smoke: false))
 	} {
 		self.definePattern(t[\name], t[\path], nil, nil, false)
 	};

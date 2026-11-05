@@ -99,6 +99,10 @@ SC's own words: "it's SC!"
   a change the log doesn't explain is Steph's. The history names the editor of each version and
   of the current files. Nothing before the log started (2026-11-05) is named. Steph: "the engine
   SHOULD know who made the edit. its me or you."
+- 2026-11-05: **live saves skip the smoke test.** Saving over a playing file reloads it at once
+  (watcher poll + compile); a define still smoke-tests. Before, each save waited ~2.5 s for the
+  test. The master limiter still catches loudness; NaN would need a panic. Steph: "skip the smoke
+  test on these live edits."
 - **Versions are content-hashed** (sha1, first 12 hex). Returning to old source isn't stored
   twice. Performances will be hashed too, with parent links.
 - **Heat map is derived** from play/stop and version changes: time per synth version × pattern
