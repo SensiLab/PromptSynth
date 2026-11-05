@@ -47,6 +47,7 @@
   button.playing { border-color: var(--play); color: var(--play); }
   select { font: inherit; font-size: 0.85em; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 0.25em; }
   .note { color: var(--dim); font-size: 0.85em; }
+  .cite { color: var(--dim); font-size: 0.7em; }
   ol.steps { list-style: none; padding: 0; margin: 0; overflow: auto; min-height: 0; flex: 1; border: 1px solid var(--line); border-radius: 8px; }
   ol.steps li { max-width: none; margin: 0; padding: 0.45em 0.8em; border-bottom: 1px solid var(--line); cursor: pointer; display: grid;
     grid-template-columns: 7.5em 4.5em 1fr; gap: 0.8em; font-size: 0.85em; }
@@ -77,17 +78,17 @@
   <h2>The cost of change collapsed</h2>
   <p>Code agents as part of a history of how the cost of change shaped each era's interface to the machine.</p>
   <p>That cost has collapsed, so software has become <em>softer</em>: material you keep reshaping,
-    not a finished artifact you configure.</p>
+    not a finished artifact you configure. <span class="cite">(Ink &amp; Switch, Malleable software, 2025)</span></p>
   <p>Software is processes plus configuration. A GUI is one lossy view of that configuration.</p>
 </section>
 
 <!-- 3 -->
 <section class="slide">
   <h2>The code is the interface</h2>
-  <p>When editing code is cheap, code itself becomes the shared interface between the human and the model.</p>
+  <p>When editing code is cheap, code itself becomes the shared interface between the human and the model. <span class="cite">(Karpathy, Software 3.0, 2025)</span></p>
   <blockquote>the code is the interface and i see with my ears.
     <cite>Steph, 2026-10-29</cite></blockquote>
-  <p>We make sounds by writing code, judge them by ear, and keep every iteration as a replayable trace.</p>
+  <p>We make sounds by writing code, judge them by ear, and keep every iteration as a replayable trace. <span class="cite">(live coding: TOPLAP, Alex McLean)</span></p>
 </section>
 
 <!-- 4 -->
@@ -95,18 +96,16 @@
   <h2>How it got here</h2>
   <h3 class="yr">2025</h3>
   <ul>
-    <li>Prototype: a breeding loop. Each reply from the API becomes the template for the next prompt, played live in SuperCollider. The model is a <em>generator</em>.</li>
-    <li>Then Claude inside the SuperCollider interpreter: an sclang class sends the prompt to the API and writes the code back into the document.</li>
+    <li>A breeding loop: each reply becomes the next prompt. The model is a <em>generator</em>.</li>
+    <li>Claude inside the SuperCollider interpreter, writing code into the document.</li>
   </ul>
   <h3 class="yr">2026</h3>
   <ul>
-    <li>An engine: a SuperCollider program that other tools drive with OSC messages (play, stop, define). It keeps a library where every synth and pattern has a name and its own file, and every version is kept, named by a fingerprint (hash) of its code.</li>
-    <li>Edit a file while it plays, save, and you hear the change right away. So your own hand edits join the loop alongside Claude's.</li>
-    <li>The code is the interface: no params on screen.</li>
-    <li>The terminal is primary. Claude Code edits the files and drives the engine. The GUI becomes optional.</li>
-    <li>Speed over accuracy: time from prompt to sound matters most.</li>
-    <li>A GUI in the browser: a dashboard (what's playing, what Claude Code is doing) and an archaeological player that digs back through the history of making.</li>
-    <li>The history of making. Mappings move into the code.</li>
+    <li>An engine driven over OSC: every synth and pattern a file, every version kept.</li>
+    <li>Save while it plays and you hear it: hand edits join the loop.</li>
+    <li>Code as the material, and the interface. The terminal is primary.</li>
+    <li>Speed over accuracy.</li>
+    <li>A browser dashboard and an archaeological player for the history of making.</li>
   </ul>
   <p class="note">The model went from generator to collaborator in the files.</p>
 </section>
@@ -133,7 +132,7 @@
       <p>Prompt: <em>“a fm synth with sweeping filters and detuning… make synth warm and add a hi tinkle… add a sub harmonic”</em></p>
       <p>On its own, a synth is a sound: one note, held until you stop it.</p>
       <div class="bar"><button data-play="synth:fmSweep">▶ fmSweep</button></div>
-      <p><b>Save to listen:</b> saving over a playing file reloads it. <b>Define to keep:</b> a define makes a version.</p>
+      <p><b>Save to listen:</b> saving over a playing file reloads it. <b>Define to keep:</b> a define makes a version. <span class="cite">(Bret Victor, Inventing on Principle, 2012; Smalltalk's live image)</span></p>
       <p class="note">Edit the file live: changed lines light up here.</p>
     </div>
     <pre class="src" data-src="synth:fmSweep"></pre>
@@ -194,7 +193,7 @@
     <div class="card"><span class="from">artifact: product →</span><b>trace</b>
       What we keep is the history of intent, code and sound, not one final program.</div>
   </div>
-  <p style="margin-top:1.2em">Authorship is distributed: the human, the model and the stored history all shape each file.</p>
+  <p style="margin-top:1.2em">Authorship is distributed: the human, the model and the stored history all shape each file. <span class="cite">(Naur, Programming as Theory Building, 1985)</span></p>
 </section>
 
 <!-- 10 -->
@@ -214,7 +213,7 @@
 <section class="slide">
   <h2>Guardrails, not taste</h2>
   <ul>
-    <li>Every define is smoke-tested: NaN fails it; silence, clipping, too loud, or not freeing are warnings.</li>
+    <li>Every define is smoke-tested (a live save isn't: it's heard at once): NaN fails it; silence, clipping, too loud, or not freeing are warnings.</li>
     <li>A limiter on the master; mapped params are smoothed; input UGens are rejected.</li>
     <li>Analysis views (spectrogram, MFCCs, stereo field) as a shared language.</li>
     <li><em>The deliverable is a sound, not a program.</em> The ear decides. No ratings, no stars, no “good” flags.</li>
