@@ -55,7 +55,7 @@ const toEngine = (addr, args = []) => osc.send(encode(addr, args), enginePort, "
 
 // --- engine status, and replies waited on by path ---
 let lastStatus = null, lastStatusAt = 0;
-const waiting = [];   // {path, resolve}
+const waiting = [];   // {path, key, resolve}: key is "kind name", so a late reply can't answer another request
 setInterval(() => toEngine("/ps/status"), 500);
 osc.on("message", (buf) => {
   let m;
@@ -65,13 +65,14 @@ osc.on("message", (buf) => {
   try { r = JSON.parse(m.args[1]); } catch { return; }
   const p = String(m.args[0]).replace(/^\/?ps\//, "");
   if (p === "status") { lastStatus = r; lastStatusAt = Date.now(); return; }
-  const i = waiting.findIndex((w) => w.path === p);
+  const key = r.kind !== undefined && r.name !== undefined ? `${r.kind} ${r.name}` : null;
+  const i = waiting.findIndex((w) => w.path === p && (key === null || w.key === key));
   if (i >= 0) waiting.splice(i, 1)[0].resolve(r);
 });
 osc.bind(oscPort, "127.0.0.1");
 function ask(p, args, ms = 3000) {
   return new Promise((resolve) => {
-    const w = { path: p, resolve };
+    const w = { path: p, key: args.join(" "), resolve };
     waiting.push(w);
     toEngine("/ps/" + p, args);
     setTimeout(() => { const i = waiting.indexOf(w); if (i >= 0) { waiting.splice(i, 1); resolve({ ok: false, errors: ["no reply from the engine"] }); } }, ms);

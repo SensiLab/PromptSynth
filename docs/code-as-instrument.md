@@ -8,7 +8,7 @@ them, and where the practice stands against the idea.
 
 Software is processes plus configuration, and a GUI is one lossy view of that configuration. When editing code is cheap, code itself becomes the shared interface between the human and the model. This project is live coding in SuperCollider: we make new sounds by writing code, judge them by ear, and keep every iteration as a replayable trace.
 
-The idea comes from about 30 years of watching how the cost of change shaped each era's interface to the machine. That cost has collapsed, so software has become softer: material you keep reshaping, not a finished artifact you configure.
+The idea places code agents in a history of how the cost of change shaped each era's interface to the machine. That cost has collapsed, so software has become softer: material you keep reshaping, not a finished artifact you configure.
 
 ## How it got here (repo history)
 

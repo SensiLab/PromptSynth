@@ -32,6 +32,7 @@
   .time { display: grid; grid-template-columns: 8em 1fr; gap: 0.4em 1.2em; max-width: 50em; }
   .time dt { color: var(--accent); font-family: var(--mono); font-size: 0.85em; padding-top: 0.15em; }
   .time dd { margin: 0; }
+  h3.yr { font-family: var(--mono); font-size: 0.9em; font-weight: 400; color: var(--accent); margin: 0.6em 0 0; }
   .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em; margin: 1em 0 1.4em; }
   .flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.35em 0.7em; }
   .flow i { color: var(--dim); font-style: normal; }
@@ -51,6 +52,7 @@
     grid-template-columns: 7.5em 4.5em 1fr; gap: 0.8em; font-size: 0.85em; }
   ol.steps li:hover { background: var(--panel); }
   ol.steps li.cur { background: var(--flash); }
+  ol.steps .who { color: var(--accent); font-size: 0.8em; margin-left: 0.5em; white-space: nowrap; }
   ol.steps li.missing { color: var(--dim); cursor: default; }
   ol.steps .t, ol.steps .k { font-family: var(--mono); font-size: 0.85em; color: var(--dim); padding-top: 0.15em; }
   #chrome { position: fixed; left: 7vw; right: 7vw; bottom: 3vh; display: flex; justify-content: space-between;
@@ -73,7 +75,7 @@
 <!-- 2 -->
 <section class="slide">
   <h2>The cost of change collapsed</h2>
-  <p>About 30 years of watching how the cost of change shaped each era's interface to the machine.</p>
+  <p>Code agents as part of a history of how the cost of change shaped each era's interface to the machine.</p>
   <p>That cost has collapsed, so software has become <em>softer</em>: material you keep reshaping,
     not a finished artifact you configure.</p>
   <p>Software is processes plus configuration. A GUI is one lossy view of that configuration.</p>
@@ -83,7 +85,7 @@
 <section class="slide">
   <h2>The code is the interface</h2>
   <p>When editing code is cheap, code itself becomes the shared interface between the human and the model.</p>
-  <blockquote>i dont want to see parameters moving. the code is the interface and i see with my ears.
+  <blockquote>the code is the interface and i see with my ears.
     <cite>Steph, 2026-10-29</cite></blockquote>
   <p>We make sounds by writing code, judge them by ear, and keep every iteration as a replayable trace.</p>
 </section>
@@ -91,15 +93,21 @@
 <!-- 4 -->
 <section class="slide">
   <h2>How it got here</h2>
-  <dl class="time">
-    <dt>2025-03</dt><dd>Prototype: a prompt goes to the API, a SynthDef comes back and plays. The model is a <em>generator</em>.</dd>
-    <dt>2026-10-28</dt><dd>An engine in sclang over OSC, a library of named synths and patterns, hashed versions.</dd>
-    <dt>2026-10-28</dt><dd>Saving over a playing file reloads it: hand edits join the loop.</dd>
-    <dt>2026-10-29</dt><dd>The code is the interface: no params on screen.</dd>
-    <dt>2026-11-01</dt><dd>The terminal is primary. Claude Code edits the files and drives the engine. The GUI becomes optional.</dd>
-    <dt>2026-11-02</dt><dd>Speed over accuracy: time from prompt to sound matters most.</dd>
-    <dt>2026-11-04</dt><dd>The history of making. Mappings move into the code.</dd>
-  </dl>
+  <h3 class="yr">2025</h3>
+  <ul>
+    <li>Prototype: a breeding loop. Each reply from the API becomes the template for the next prompt, played live in SuperCollider. The model is a <em>generator</em>.</li>
+    <li>Then Claude inside the SuperCollider interpreter: an sclang class sends the prompt to the API and writes the code back into the document.</li>
+  </ul>
+  <h3 class="yr">2026</h3>
+  <ul>
+    <li>An engine: a SuperCollider program that other tools drive with OSC messages (play, stop, define). It keeps a library where every synth and pattern has a name and its own file, and every version is kept, named by a fingerprint (hash) of its code.</li>
+    <li>Edit a file while it plays, save, and you hear the change right away. So your own hand edits join the loop alongside Claude's.</li>
+    <li>The code is the interface: no params on screen.</li>
+    <li>The terminal is primary. Claude Code edits the files and drives the engine. The GUI becomes optional.</li>
+    <li>Speed over accuracy: time from prompt to sound matters most.</li>
+    <li>A GUI in the browser: a dashboard (what's playing, what Claude Code is doing) and an archaeological player that digs back through the history of making.</li>
+    <li>The history of making. Mappings move into the code.</li>
+  </ul>
   <p class="note">The model went from generator to collaborator in the files.</p>
 </section>
 
@@ -109,7 +117,7 @@
   <div class="flow"><span>prompt</span><i>→</i><span>Claude Code (terminal)</span><i>→</i><span>library files</span><i>→</i>
     <span>engine (sclang, OSC)</span><i>→</i><span>scsynth</span><i>→</i><span>ears</span></div>
   <ul>
-    <li>Each synth and pattern is one file. Claude writes it; the human edits it too.</li>
+    <li>Each synth and each pattern has its own file. Claude writes it; the human edits it too.</li>
     <li>The engine validates, smoke-tests, versions and plays it.</li>
     <li>Everything else (terminal, web UI, these slides) talks to it over OSC.</li>
   </ul>
@@ -123,11 +131,26 @@
     <div>
       <p><code>library/synths/fmSweep/synthdef.scd</code></p>
       <p>Prompt: <em>“a fm synth with sweeping filters and detuning… make synth warm and add a hi tinkle… add a sub harmonic”</em></p>
+      <p>On its own, a synth is a sound: one note, held until you stop it.</p>
+      <div class="bar"><button data-play="synth:fmSweep">▶ fmSweep</button></div>
       <p><b>Save to listen:</b> saving over a playing file reloads it. <b>Define to keep:</b> a define makes a version.</p>
-      <div class="bar"><button data-play="pattern:bachPreludeSeq">▶ bachPreludeSeq</button></div>
       <p class="note">Edit the file live: changed lines light up here.</p>
     </div>
     <pre class="src" data-src="synth:fmSweep"></pre>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <h2>Pair it with a pattern</h2>
+  <div class="cols">
+    <div>
+      <p><code>library/patterns/bachPreludeSeq/pattern.scd</code></p>
+      <p>Prompt: <em>“seq: bach c major prelude”</em></p>
+      <p>A pattern is its own file. It names its synth (<code>\instrument, \fmSweep</code>), and now the synth plays a score.</p>
+      <div class="bar"><button data-play="pattern:bachPreludeSeq">▶ bachPreludeSeq</button></div>
+    </div>
+    <pre class="src" data-src="pattern:bachPreludeSeq"></pre>
   </div>
 </section>
 
@@ -179,6 +202,7 @@
   <h2>The history of making</h2>
   <div class="bar">
     <select id="histPick"></select>
+    <button id="histPlay">▶ play</button>
     <button id="histLatest">back to latest</button>
     <span class="note" id="histLabel"></span>
   </div>
@@ -297,15 +321,23 @@
   }
   $("histPick").onchange = (e) => { histName = e.target.value; stepAt = null; loadSteps(); };
   async function loadSteps() {
-    const r = await getJson(`/api/steps?kind=pattern&name=${histName}`);
+    const name = histName, r = await getJson(`/api/steps?kind=pattern&name=${name}`);
+    if (name !== histName) return;   // picked another pattern while this one was loading
     steps = r?.steps ?? [];
+    // the files as they are now, when they aren't a version yet (edited since the last define)
+    if (!steps.length || !steps.at(-1).current) {
+      const who = Object.entries(r?.edited ?? {}).filter(([, e]) => e);
+      const by = who.length === 0 ? "edited since the last version"
+        : who.length === 1 ? `${who[0][1]} edited the ${who[0][0]}` : who.map(([k, e]) => `${e} edited the ${k}`).join(", ");
+      steps.push({ now: true, playable: true, change: "", step: `now: ${by} (not a version yet)` });
+    }
     if (!r?.ok && r) $("histLabel").textContent = (r.errors ?? []).join("; ");
     renderSteps();
   }
   function renderSteps() {
     $("steps").innerHTML = steps.map((s, i) => `<li data-i="${i}" class="${i === stepAt ? "cur" : ""}${s.playable ? "" : " missing"}">`
       + `<span class="t">${esc((s.time ?? "").slice(5, 16).replace("T", " "))}</span><span class="k">${esc(s.change ?? "")}</span>`
-      + `<span>${esc(s.step || "(no prompt)")}</span></li>`).join("");
+      + `<span>${s.current || s.now ? "<b>current</b> · " : ""}${esc(s.step || "(no prompt)")}${s.editor ? ` <span class="who">${esc(s.editor)} edited</span>` : ""}</span></li>`).join("");
     $("histLabel").textContent = status.historyActive && stepAt !== null ? `step ${stepAt + 1} of ${steps.length}` : "latest versions";
   }
   $("steps").onclick = (e) => {
@@ -314,8 +346,16 @@
     if (!s?.playable) return;
     stepAt = i;
     for (const p of status.patterns ?? []) if (p.playing && p.name !== histName) cmd({ cmd: "pattern/stop", name: p.name });
-    cmd({ cmd: "history/load", kind: "pattern", name: histName, index: s.index ?? i });
+    if (s.now || s.current) { cmd({ cmd: "history/end" }); setTimeout(() => cmd({ cmd: "pattern/play", name: histName }), 300); }
+    else cmd({ cmd: "history/load", kind: "pattern", name: histName, index: s.index ?? i });
     renderSteps();
+  };
+  // play / stop the picked pattern (with a step loaded, it plays that step's versions)
+  $("histPlay").onclick = () => {
+    if (playing("pattern", histName)) { cmd({ cmd: "pattern/stop", name: histName }); return; }
+    for (const p of status.patterns ?? []) if (p.playing) cmd({ cmd: "pattern/stop", name: p.name });
+    for (const y of status.synths ?? []) if (y.playing) cmd({ cmd: "synth/release", name: y.name });
+    cmd({ cmd: "pattern/play", name: histName });
   };
   $("histLatest").onclick = () => { stepAt = null; cmd({ cmd: "history/end" }); renderSteps(); };
 
@@ -330,6 +370,7 @@
       : "engine not running: start it with tools/start-engine.sh";
     renderButtons();
     fillPicker();
+    { const on = playing("pattern", histName); $("histPlay").classList.toggle("playing", on); $("histPlay").textContent = on ? "■ stop" : "▶ play"; }
     if (!status.historyActive && stepAt !== null) { stepAt = null; renderSteps(); }
   }
   setInterval(poll, 700);
