@@ -195,6 +195,7 @@ library/synths/<name>/synthdef.scd        current source
 library/synths/<name>/meta.json           kind, params + specs, hash, last validation (engine-owned)
 library/synths/<name>/info.json           caller's info (prompt, parent, tags...) for the current version
 library/synths/<name>/history.jsonl       one line per new version: {"time", "hash", "info"}
+library/_edits.jsonl                      Claude Code's edits to synth and pattern files (tools/cc-hook.mjs): {time, kind, name, before, after}
 library/synths/<name>/versions/<hash>.scd every version, by content hash (sha1, first 12 hex)
 library/synths/<name>/recordings/
 library/patterns/<name>/pattern.scd, meta.json (bound synth, keys), info.json, history.jsonl, versions/
@@ -246,7 +247,7 @@ The others only answer when they fail (`"ok":false,"errors":[...]`).
 | `/ps/master/amp` | `amp` | 0..2, before the limiter (ceiling -1 dBFS) |
 | `/ps/panic` | | stop all patterns, free all synths |
 | `/ps/quit` | | *reply*, then stop everything, save settings, quit scsynth and exit sclang (`tools/stop-engine.sh` uses it) |
-| `/ps/history/steps` | `kind name` | *reply* the history of making: for a pattern, its versions and its synth's versions merged in time order (each step is that pattern version on that synth version); for a synth, its versions. Oldest first: `index, time, change (pattern/synth), step (the new part of its prompt), pattern, patternHash, synth, synthHash, playable, current`. |
+| `/ps/history/steps` | `kind name` | *reply* the history of making: for a pattern, its versions and its synth's versions merged in time order (each step is that pattern version on that synth version); for a synth, its versions. Oldest first: `index, time, change (pattern/synth), step (the new part of its prompt), editor (Steph, Claude, Steph + Claude, or absent), pattern, patternHash, synth, synthHash, playable, current`. `edited`: who changed each current file since its latest version (`pattern`, `synth`; absent = unchanged or unknown). |
 | `/ps/history/load` | `kind name index` | *reply* load that step's versions in memory (no new version, no history line) and play its pattern |
 | `/ps/history/end` | | *reply* back to the latest versions, with the settings from before the player started |
 | `/ps/rec/start` | `[synth or pattern] [seconds]` | *reply* `path`. Records the master output to WAV (24-bit) |

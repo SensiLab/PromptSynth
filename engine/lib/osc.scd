@@ -71,7 +71,8 @@ oscCommands: { |self|
 		'/ps/history/steps': [{ |args|
 			var steps = self.historySteps((args[0] ?? { Error("missing kind").throw }).asSymbol,
 				(args[1] ?? { Error("missing name").throw }).asSymbol);
-			(ok: true, kind: args[0].asString, name: args[1].asString, steps: steps.collect { |s, i|
+			(ok: true, kind: args[0].asString, name: args[1].asString,
+				edited: self.historyEdited(args[0], args[1]), steps: steps.collect { |s, i|
 				s.copy.putAll((index: i)).reject { |v, k| #[patternFile, synthFile].includes(k) } })
 		}, true],
 		'/ps/history/load': [{ |args, addr|

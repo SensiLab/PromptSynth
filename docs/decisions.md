@@ -94,6 +94,11 @@ SC's own words: "it's SC!"
   parametes. so always attack etc."
 - **History records topology and deliberate moves, not input.** Param sets via the API are
   recorded (settled value); mouse, LFOs, random values are not.
+- 2026-11-05: **the engine knows who edited.** Only Steph and Claude edit the files. Claude Code's
+  hook logs each change its tool calls make to a synth or pattern file (`library/_edits.jsonl`);
+  a change the log doesn't explain is Steph's. The history names the editor of each version and
+  of the current files. Nothing before the log started (2026-11-05) is named. Steph: "the engine
+  SHOULD know who made the edit. its me or you."
 - **Versions are content-hashed** (sha1, first 12 hex). Returning to old source isn't stored
   twice. Performances will be hashed too, with parent links.
 - **Heat map is derived** from play/stop and version changes: time per synth version × pattern

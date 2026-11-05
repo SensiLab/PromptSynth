@@ -36,6 +36,10 @@ waiting on three decisions.
 - **Cheat sheet** (2026-11-03): `docs/cheatsheet.md`, the only reading for synth and pattern work
   (`CLAUDE.md` points there). Its example synth and pattern pass the engine's checks.
 
+- **Who edited** (2026-11-05): `tools/cc-hook.mjs` hashes the library's synth and pattern files
+  around each writing tool call and logs Claude's changes to `library/_edits.jsonl`; the history
+  names each version's editor (Steph, Claude, Steph + Claude) and who changed the current files.
+  The history also says why a step has no prompt, and an untimed (migrated) version sorts first.
 - **Slides** (2026-11-05): `slides/`, a demo deck of `docs/code-as-instrument.md` with the engine
   built in (play buttons, live code panels, the history of making), served by its own small Node
   server on 8092. The spectrogram and stereo field come from `--views`, not the page.
